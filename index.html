@@ -271,9 +271,29 @@ body.resizing * { cursor: col-resize !important; user-select: none !important; }
   align-items: center;
 }
 .sidebar-footer {
-  padding: 12px 14px;
+  padding: 10px 12px;
   border-top: 1px solid var(--border-dark);
+  flex-shrink: 0;
 }
+.footer-btn-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 4px;
+}
+.btn-footer-sm {
+  background: transparent;
+  color: var(--sidebar-muted);
+  border: 1px solid var(--border-dark);
+  border-radius: 5px;
+  padding: 6px 2px;
+  font-size: 10px;
+  font-family: 'Segoe UI', '微軟正黑體', 'Microsoft JhengHei', sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: color 0.12s, border-color 0.12s;
+}
+.btn-footer-sm:hover { color: var(--sidebar-text); border-color: var(--text-faint); }
 .btn-export {
   width: 100%;
   background: transparent;
@@ -1234,10 +1254,12 @@ input:-webkit-autofill:focus {
       </select>
       <span class="count-chip" id="count-chip">0</span>
     </div>
-    <div id="article-list" style="flex:1;overflow-y:auto;padding:0 8px 16px;"></div>
-    <div class="recent-section" id="recent-section" style="display:none">
-      <span class="recent-label">最近閱讀</span>
-      <div id="recent-list"></div>
+    <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0;">
+      <div id="article-list" style="flex:1;overflow-y:auto;padding:0 8px 8px;"></div>
+      <div class="recent-section" id="recent-section" style="display:none">
+        <span class="recent-label">最近閱讀</span>
+        <div id="recent-list"></div>
+      </div>
     </div>
   </div>
 
@@ -1259,13 +1281,13 @@ input:-webkit-autofill:focus {
     <div id="report-list" style="flex:1;overflow-y:auto;padding:0 8px 16px;"></div>
   </div>
 
-  <div class="sidebar-footer" style="display:flex;flex-direction:column;gap:5px;">
-    <div class="articles-only" style="display:flex;gap:5px;">
-      <button class="btn-export" style="flex:1" onclick="exportJSON()">↓ 備份 JSON</button>
-      <button class="btn-export" style="flex:1" onclick="importJSON()">↑ 還原 JSON</button>
+  <div class="sidebar-footer">
+    <div class="articles-only footer-btn-grid">
+      <button class="btn-footer-sm" onclick="exportJSON()" title="備份 JSON">↓ JSON</button>
+      <button class="btn-footer-sm" onclick="importJSON()" title="還原 JSON">↑ 還原</button>
+      <button class="btn-footer-sm" onclick="exportCSV()" title="匯出 CSV">↓ CSV</button>
+      <button class="btn-footer-sm" style="color:var(--accent-dim);border-color:var(--accent-dim)" onclick="openTagManager()" title="管理標籤">🏷 標籤</button>
     </div>
-    <button class="btn-export articles-only" onclick="exportCSV()">↓ 匯出 CSV</button>
-    <button class="btn-export articles-only" style="color:var(--accent-dim);border-color:var(--accent-dim)" onclick="openTagManager()">🏷 管理標籤</button>
     <button class="btn-export reports-only" onclick="exportReportsCSV()">↓ 匯出報告 CSV</button>
   </div>
 </div>
