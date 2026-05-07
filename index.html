@@ -142,7 +142,7 @@ body.resizing * { cursor: col-resize !important; user-select: none !important; }
 .folder-tabs {
   border-bottom: 1px solid var(--border-dark);
   padding: 6px 8px 10px;
-  max-height: 260px;
+  max-height: min(180px, 28vh);
   overflow-y: auto;
 }
 .folder-tabs::-webkit-scrollbar { width: 4px; }
