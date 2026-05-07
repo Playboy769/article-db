@@ -85,6 +85,8 @@ body {
 }
 body.resizing { cursor: col-resize !important; user-select: none; }
 body.resizing * { cursor: col-resize !important; user-select: none !important; }
+body.v-resizing { cursor: ns-resize !important; user-select: none; }
+body.v-resizing * { cursor: ns-resize !important; user-select: none !important; }
 .sidebar-brand {
   padding: 24px 20px 16px;
   border-bottom: 1px solid var(--border-dark);
@@ -1030,16 +1032,29 @@ body.dark .report-content-display tr:hover td { background: rgba(255,255,255,0.0
 }
 .btn-dark-toggle:hover { opacity: 1; }
 
-/* ── Sort dropdown ──────────────────────────────────────────── */
+/* ── Sort dropdown (垂直 resize handle) ──────────────────────── */
 .sort-wrap {
   display: flex; align-items: center; gap: 6px;
-  padding: 8px 14px 4px;
+  padding: 6px 14px 4px;
+  cursor: ns-resize;
+  user-select: none;
+  position: relative;
+  border-top: 1px solid var(--border-dark);
 }
+.sort-wrap::before {
+  content: '•••';
+  position: absolute; left: 50%; transform: translateX(-50%);
+  top: 1px; font-size: 8px; letter-spacing: 2px;
+  color: var(--border-dark); pointer-events: none;
+  transition: color 0.15s;
+}
+.sort-wrap:hover::before { color: var(--accent); }
 .sort-wrap .sidebar-list-label {
   flex: 1; font-size: 10px; color: var(--sidebar-muted);
   letter-spacing: 0.12em; text-transform: uppercase;
 }
 .sort-select {
+  cursor: pointer;
   background: transparent; border: none; font-size: 10px;
   font-family: 'Segoe UI', '微軟正黑體', sans-serif;
   color: var(--sidebar-muted); cursor: pointer; outline: none;
@@ -2531,6 +2546,48 @@ document.addEventListener('keydown', e => {
   window.addEventListener('pointermove', onPointerMove);
   window.addEventListener('pointerup', onPointerUp);
   resizer.addEventListener('dblclick', onDoubleClick);
+})();
+
+// ── 資料夾高度可拖曳（sort-wrap 當 handle）─────────────────────
+(function setupFolderResize() {
+  const KEY = 'folder_height';
+  const MIN = 50, MAX = 360, DEFAULT = 180;
+  const folderTabs = document.getElementById('folder-tabs');
+  const sortWrap   = document.querySelector('.sort-wrap');
+  if (!folderTabs || !sortWrap) return;
+
+  // 載入儲存高度
+  const saved = parseInt(localStorage.getItem(KEY), 10);
+  if (saved >= MIN && saved <= MAX) folderTabs.style.maxHeight = saved + 'px';
+
+  let dragging = false;
+  sortWrap.addEventListener('pointerdown', e => {
+    if (e.target.tagName === 'SELECT' || e.target.tagName === 'OPTION') return;
+    dragging = true;
+    document.body.classList.add('v-resizing');
+    e.preventDefault();
+  });
+  window.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    const top = folderTabs.getBoundingClientRect().top;
+    let h = Math.round(e.clientY - top);
+    h = Math.max(MIN, Math.min(MAX, h));
+    folderTabs.style.maxHeight = h + 'px';
+  });
+  window.addEventListener('pointerup', () => {
+    if (!dragging) return;
+    dragging = false;
+    document.body.classList.remove('v-resizing');
+    const h = parseInt(folderTabs.style.maxHeight, 10);
+    if (h) localStorage.setItem(KEY, h);
+  });
+  // 雙擊還原預設
+  sortWrap.addEventListener('dblclick', e => {
+    if (e.target.tagName === 'SELECT') return;
+    folderTabs.style.maxHeight = DEFAULT + 'px';
+    localStorage.setItem(KEY, DEFAULT);
+    toast('資料夾高度已重置');
+  });
 })();
 
 // ── Dark mode ─────────────────────────────────────────────────
