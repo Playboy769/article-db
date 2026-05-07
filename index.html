@@ -877,7 +877,14 @@ body:not(.reports-mode) .reports-only { display: none !important; }
 .form-field select:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(200,169,110,0.12); }
 
 /* ── Light Main Theme ───────────────────────────────────── */
-#main { background: #ffffff; }
+#main { background: #e5dfd6; }
+#content-area {
+  margin: 20px 20px 0;
+  background: #ffffff;
+  border-radius: 12px 12px 0 0;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.05);
+  overflow: hidden;
+}
 
 /* 工具列按鈕 */
 .btn-edit, .btn-delete {
@@ -993,7 +1000,11 @@ body.dark {
   --sidebar-text: #e4ddd2; --sidebar-muted: #8a8070;
   --sidebar-hover: #252320; --sidebar-active: #2e2b26;
 }
-body.dark #main { background: #1e1c1a !important; }
+body.dark #main { background: #0e0d0b !important; }
+body.dark #content-area {
+  background: #1e1c1a;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.04);
+}
 body.dark .search-wrap { background: #1c1a18; }
 body.dark .form-field input[type="text"],
 body.dark .form-field input[type="date"],
