@@ -1178,6 +1178,37 @@ body.dark .report-content-display tr:hover td { background: rgba(255,255,255,0.0
 }
 .folder-modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
 
+/* ── Tag suggestions & active filter ───────────────────────── */
+.tag-suggestions {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  padding: 0 2px;
+}
+.tag-suggestions:empty { display: none; }
+.tag-suggest-chip {
+  background: rgba(200,169,110,0.12);
+  color: var(--accent-dim);
+  border: 1px solid rgba(200,169,110,0.3);
+  border-radius: 999px;
+  font-size: 10px; padding: 2px 8px;
+  cursor: pointer; white-space: nowrap;
+  transition: background 0.12s;
+}
+.tag-suggest-chip:hover { background: rgba(200,169,110,0.28); }
+.active-tag-filter {
+  display: flex; align-items: center; gap: 4px;
+  background: rgba(200,169,110,0.15);
+  border: 1px solid rgba(200,169,110,0.35);
+  border-radius: 6px; padding: 3px 8px; margin-top: 2px;
+  font-size: 11px; color: var(--accent-dim);
+}
+.active-tag-filter span { flex: 1; font-weight: 500; }
+.active-tag-filter button {
+  background: none; border: none; color: var(--accent-dim);
+  cursor: pointer; font-size: 12px; padding: 0 2px; line-height: 1;
+  opacity: 0.7;
+}
+.active-tag-filter button:hover { opacity: 1; }
+
 /* ── Keyword tag chip ──────────────────────────────────────── */
 .kw-chip {
   display: inline-block;
@@ -1251,7 +1282,12 @@ input:-webkit-autofill:focus {
     <div class="sidebar-search">
       <div class="search-wrap">
         <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input id="search-input" type="text" placeholder="搜尋文章、作者…" oninput="renderList()">
+        <input id="search-input" type="text" placeholder="搜尋文章、作者、#標籤…" oninput="renderList()">
+      </div>
+      <div id="tag-suggestions" class="tag-suggestions"></div>
+      <div id="active-tag-filter" class="active-tag-filter" style="display:none">
+        <span id="active-tag-label"></span>
+        <button onclick="filterByTag(currentTag)" title="清除標籤篩選">✕</button>
       </div>
     </div>
     <div class="sidebar-actions">
@@ -1858,12 +1894,45 @@ async function deleteFolder(name) {
 }
 
 // ── 文章列表渲染 ─────────────────────────────────────────────
+function renderTagSuggestions(q) {
+  const box = document.getElementById('tag-suggestions');
+  const activeEl = document.getElementById('active-tag-filter');
+  const activeLabel = document.getElementById('active-tag-label');
+  if (!box) return;
+
+  // 顯示目前啟用的標籤篩選
+  if (currentTag) {
+    activeEl.style.display = 'flex';
+    activeLabel.textContent = '🏷 ' + currentTag;
+  } else {
+    activeEl.style.display = 'none';
+  }
+
+  // 搜尋欄空白或太短時不顯示建議
+  if (!q || q.length < 1) { box.innerHTML = ''; return; }
+
+  // 收集所有標籤，過濾符合 q 的
+  const allTags = [...new Set(articles.flatMap(a => a.tags || []))].sort();
+  const matched = allTags.filter(t => t.toLowerCase().includes(q) && t !== currentTag);
+  if (!matched.length) { box.innerHTML = ''; return; }
+
+  box.innerHTML = matched.slice(0, 8).map(t =>
+    `<span class="tag-suggest-chip" onclick="applyTagFilter('${esc(t)}')">#${esc(t)}</span>`
+  ).join('');
+}
+
+function applyTagFilter(tag) {
+  document.getElementById('search-input').value = '';
+  filterByTag(tag);
+}
+
 function renderList() {
   renderFolders();
 
   const q    = document.getElementById('search-input').value.toLowerCase();
   const list = document.getElementById('article-list');
   const chip = document.getElementById('count-chip');
+  renderTagSuggestions(q);
 
   const filtered = articles.filter(a => {
     const matchSearch = !q ||
