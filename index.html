@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>文章資料庫</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+  onload="window._katexReady=true; document.dispatchEvent(new Event('katex-ready'))"></script>
 <style>
 :root {
   --sidebar-w: 280px;
@@ -2140,6 +2144,27 @@ input:-webkit-autofill:focus {
 
 <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
 <script>
+// ── KaTeX LaTeX renderer ──────────────────────────────────────
+function applyLatex(el) {
+  if (!el) return;
+  if (typeof renderMathInElement === 'function') {
+    renderMathInElement(el, {
+      delimiters: [
+        { left: '$$', right: '$$', display: true },
+        { left: '$',  right: '$',  display: false },
+        { left: '\\[', right: '\\]', display: true },
+        { left: '\\(', right: '\\)', display: false }
+      ],
+      throwOnError: false,
+      errorColor: '#c0392b'
+    });
+  } else {
+    // Queue until KaTeX is ready
+    document.addEventListener('katex-ready', () => applyLatex(el), { once: true });
+  }
+}
+</script>
+<script>
 marked.setOptions({ breaks: true, gfm: true });
 
 // ── API 設定（部署到 Railway 後填入網址）────────────────────
@@ -2563,6 +2588,7 @@ function viewArticle(id) {
   }
 
   document.getElementById('view-content').innerHTML = marked.parse(a.content || '');
+  applyLatex(document.getElementById('view-content'));
   applyStoredHighlights(id);
   applyAnchorNotes(id);
 
@@ -2933,6 +2959,7 @@ function viewReport(id) {
   }
 
   document.getElementById('rv-content').innerHTML = marked.parse(r.content || '');
+  applyLatex(document.getElementById('rv-content'));
   renderViewGallery('report-view-image-gallery', getImages(r));
 
   renderReportList();
@@ -4174,6 +4201,7 @@ function renderNotes() {
       ${imgGrid}
     </div>`;
   }).join('');
+  applyLatex(list);
 
   // Restore textarea content for editing note
   if (_editingNoteId) {
