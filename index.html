@@ -1134,6 +1134,109 @@ body.dark .report-content-display th { background: #252320; color: var(--text-ma
 body.dark .article-content-display tr:hover td,
 body.dark .report-content-display tr:hover td { background: rgba(255,255,255,0.04); }
 
+/* ── Highlighter toolbar ─────────────────────────────────────── */
+#hl-toolbar {
+  position: fixed; z-index: 600;
+  background: #2a2520; border-radius: 10px;
+  padding: 7px 10px; display: none; gap: 6px; align-items: center;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.32); pointer-events: auto;
+}
+#hl-toolbar::after {
+  content: ''; position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%);
+  border: 7px solid transparent; border-bottom: none; border-top-color: #2a2520;
+}
+.hl-color-btn {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.18); cursor: pointer;
+  transition: transform 0.12s, border-color 0.12s; flex-shrink: 0;
+}
+.hl-color-btn:hover { transform: scale(1.25); border-color: rgba(255,255,255,0.7); }
+.hl-sep { width: 1px; height: 16px; background: rgba(255,255,255,0.18); flex-shrink: 0; }
+.hl-erase-btn {
+  background: none; border: none; color: rgba(255,255,255,0.65);
+  font-size: 12px; cursor: pointer; padding: 0 3px; white-space: nowrap;
+  font-family: 'Segoe UI','微軟正黑體',sans-serif; transition: color 0.1s;
+}
+.hl-erase-btn:hover { color: white; }
+mark.hl {
+  border-radius: 2px; padding: 1px 0; cursor: pointer; transition: filter 0.1s;
+}
+mark.hl:hover { filter: brightness(0.88); }
+mark.hl[data-color="yellow"] { background: rgba(255,214,0,0.40); }
+mark.hl[data-color="green"]  { background: rgba(52,199,89,0.34); }
+mark.hl[data-color="pink"]   { background: rgba(255,65,130,0.28); }
+mark.hl[data-color="blue"]   { background: rgba(50,150,255,0.32); }
+body.dark mark.hl[data-color="yellow"] { background: rgba(255,214,0,0.28); }
+body.dark mark.hl[data-color="green"]  { background: rgba(52,199,89,0.24); }
+body.dark mark.hl[data-color="pink"]   { background: rgba(255,65,130,0.22); }
+body.dark mark.hl[data-color="blue"]   { background: rgba(50,150,255,0.26); }
+/* active highlighter mode cursor */
+body.hl-active #view-content { cursor: text; }
+.btn-hl-active { background: rgba(255,214,0,0.22) !important; border-color: #c8a020 !important; color: #7a6000 !important; }
+body.dark .btn-hl-active { background: rgba(255,214,0,0.15) !important; color: #c8a020 !important; }
+
+/* ── Notes Panel ─────────────────────────────────────────────── */
+#notes-panel {
+  position: absolute; top: 0; right: 0; bottom: 0;
+  width: 290px; background: var(--bg-darker);
+  border-left: 1px solid var(--border-dark);
+  display: flex; flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+  z-index: 40;
+}
+#notes-panel.open { transform: translateX(0); }
+.notes-panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px 12px; border-bottom: 1px solid var(--border-dark); flex-shrink: 0;
+}
+.notes-panel-title { font-size: 13px; font-weight: 600; color: var(--text-main); }
+.notes-panel-close {
+  background: none; border: none; font-size: 18px; line-height: 1;
+  color: var(--text-muted); cursor: pointer; padding: 2px 4px;
+  border-radius: 4px; transition: background 0.1s, color 0.1s;
+}
+.notes-panel-close:hover { background: var(--bg-light); color: var(--text-main); }
+.notes-input-wrap {
+  padding: 12px 14px; border-bottom: 1px solid var(--border-dark); flex-shrink: 0;
+}
+.notes-textarea {
+  width: 100%; font-size: 13px; line-height: 1.65; color: var(--text-main);
+  background: var(--bg-light); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 10px 12px; resize: none; outline: none;
+  font-family: 'Segoe UI','微軟正黑體','Microsoft JhengHei',sans-serif;
+  height: 88px; transition: border-color 0.15s, box-shadow 0.15s;
+}
+.notes-textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(200,169,110,0.12); }
+.notes-add-btn {
+  margin-top: 8px; width: 100%; padding: 8px;
+  background: var(--accent); color: white; border: none;
+  border-radius: 6px; font-size: 13px; cursor: pointer;
+  font-family: 'Segoe UI','微軟正黑體',sans-serif; transition: opacity 0.15s;
+}
+.notes-add-btn:hover { opacity: 0.85; }
+.notes-list { flex: 1; overflow-y: auto; padding: 10px 14px 20px; }
+.note-item {
+  background: var(--bg-light); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 12px; margin-bottom: 10px;
+}
+.note-item-meta {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;
+}
+.note-item-date { font-size: 11px; color: var(--text-muted); }
+.note-item-del {
+  background: none; border: none; font-size: 14px;
+  color: var(--text-faint); cursor: pointer; padding: 0 2px;
+  transition: color 0.1s; line-height: 1;
+}
+.note-item-del:hover { color: var(--danger); }
+.note-item-text { font-size: 13px; color: var(--text-main); line-height: 1.65; white-space: pre-wrap; }
+.notes-empty { text-align: center; font-size: 12px; color: var(--text-faint); padding: 24px 0; }
+/* dark mode */
+body.dark #notes-panel { background: #1e1c1a; }
+body.dark .notes-textarea { background: #252320; border-color: #3a3630; }
+body.dark .note-item { background: #252320; border-color: #3a3630; }
+
 /* ── Dark toggle btn ────────────────────────────────────────── */
 .btn-dark-toggle {
   background: none; border: none; font-size: 15px; cursor: pointer;
@@ -1471,6 +1574,8 @@ input:-webkit-autofill:focus {
         <button class="btn-delete" onclick="deleteArticle(currentId)">✕ 刪除</button>
         <button class="btn-star" id="btn-star" onclick="toggleStar(currentId)">☆ 收藏</button>
         <button class="btn-duplicate" onclick="duplicateArticle(currentId)">⎘ 複製</button>
+        <button class="btn-edit" id="btn-highlight" onclick="toggleHighlighter()" title="螢光筆標記選取文字">🖊 螢光筆</button>
+        <button class="btn-edit" id="btn-notes" onclick="toggleNotes()" title="筆記">📝 <span id="notes-badge"></span>筆記</button>
         <button class="btn-edit" onclick="printArticle()" title="列印 / 匯出 PDF" style="margin-left:auto">⎙ 列印</button>
       </div>
       <div class="word-count-bar" id="word-count-bar"></div>
@@ -1500,6 +1605,18 @@ input:-webkit-autofill:focus {
       <div class="article-scroll-body">
         <div id="view-image-gallery" class="image-gallery"></div>
         <div class="article-content-display" id="view-content"></div>
+      </div>
+      <!-- Notes Panel -->
+      <div id="notes-panel">
+        <div class="notes-panel-header">
+          <span class="notes-panel-title">📝 筆記</span>
+          <button class="notes-panel-close" onclick="toggleNotes()">×</button>
+        </div>
+        <div class="notes-input-wrap">
+          <textarea class="notes-textarea" id="note-input" placeholder="寫下你的想法、摘錄重點...&#10;按下新增儲存筆記"></textarea>
+          <button class="notes-add-btn" onclick="addNote()">+ 新增筆記</button>
+        </div>
+        <div class="notes-list" id="notes-list"></div>
       </div>
     </div>
 
@@ -2149,6 +2266,11 @@ function viewArticle(id) {
   }
 
   document.getElementById('view-content').innerHTML = marked.parse(a.content || '');
+  applyStoredHighlights(id);
+
+  // Close notes panel when switching articles, update badge
+  document.getElementById('notes-panel')?.classList.remove('open');
+  renderNotes();
 
   renderViewGallery('view-image-gallery', getImages(a));
 
@@ -3094,6 +3216,177 @@ ${imgsHtml}
   win.document.close();
 }
 
+// ── Highlighter ──────────────────────────────────────────────
+let hlEnabled = false;
+
+function getHls(id) { return JSON.parse(localStorage.getItem('hl_'+id)||'[]'); }
+function saveHls(id, arr) { localStorage.setItem('hl_'+id, JSON.stringify(arr)); }
+
+function toggleHighlighter() {
+  hlEnabled = !hlEnabled;
+  const btn = document.getElementById('btn-highlight');
+  if (hlEnabled) btn.classList.add('btn-hl-active');
+  else           btn.classList.remove('btn-hl-active');
+  if (!hlEnabled) hlHideToolbar();
+  toast(hlEnabled ? '🖊 螢光筆已開啟，選取文字即可標記' : '螢光筆已關閉');
+}
+
+function hlHideToolbar() {
+  document.getElementById('hl-toolbar').style.display = 'none';
+  try { window.getSelection()?.removeAllRanges(); } catch(e) {}
+}
+
+// Show toolbar on text selection inside view-content
+document.addEventListener('mouseup', function(e) {
+  if (e.target.closest('#hl-toolbar')) return;
+  const toolbar = document.getElementById('hl-toolbar');
+  const content = document.getElementById('view-content');
+  if (!content) { toolbar.style.display='none'; return; }
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) {
+    toolbar.style.display = 'none'; return;
+  }
+  const range = sel.getRangeAt(0);
+  if (!content.contains(range.commonAncestorContainer)) {
+    toolbar.style.display = 'none'; return;
+  }
+  // Position above selection
+  const rect = range.getBoundingClientRect();
+  toolbar.style.display = 'flex';
+  // Wait one frame so offsetWidth is correct
+  requestAnimationFrame(() => {
+    const tw = toolbar.offsetWidth;
+    const left = Math.max(8, Math.min(window.innerWidth - tw - 8, rect.left + rect.width/2 - tw/2));
+    toolbar.style.left = left + 'px';
+    toolbar.style.top  = (rect.top - toolbar.offsetHeight - 12) + 'px';
+  });
+});
+
+function hlApply(color) {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const text = sel.toString();
+  if (!text.trim()) return;
+  const content = document.getElementById('view-content');
+  try {
+    const range = sel.getRangeAt(0);
+    if (!content.contains(range.commonAncestorContainer)) return;
+    const mark = document.createElement('mark');
+    mark.className = 'hl';
+    mark.dataset.color = color;
+    const hlId = Date.now().toString(36) + Math.random().toString(36).slice(2,5);
+    mark.dataset.hlId = hlId;
+    mark.title = '點擊移除螢光筆';
+    range.surroundContents(mark);
+    // Persist
+    const hls = getHls(currentId);
+    hls.push({ id: hlId, text: mark.textContent, color });
+    saveHls(currentId, hls);
+    sel.removeAllRanges();
+  } catch(err) {
+    toast('請選取同一段落內的文字');
+  }
+  document.getElementById('hl-toolbar').style.display = 'none';
+}
+
+// Click mark → remove
+document.addEventListener('click', function(e) {
+  const mark = e.target.closest('mark.hl');
+  if (!mark) return;
+  const hlId = mark.dataset.hlId;
+  mark.replaceWith(document.createTextNode(mark.textContent));
+  saveHls(currentId, getHls(currentId).filter(h => h.id !== hlId));
+});
+
+function applyStoredHighlights(articleId) {
+  const hls = getHls(articleId);
+  if (!hls.length) return;
+  const content = document.getElementById('view-content');
+  hls.forEach(hl => hlWrapInDOM(content, hl.text, hl.color, hl.id));
+}
+
+function hlWrapInDOM(container, text, color, id) {
+  // Collect text nodes first (walker becomes invalid after DOM mutation)
+  const nodes = [];
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+  let n; while (n = walker.nextNode()) nodes.push(n);
+  for (const textNode of nodes) {
+    if (!textNode.parentNode) continue;
+    const idx = textNode.textContent.indexOf(text);
+    if (idx === -1) continue;
+    const before = textNode.textContent.slice(0, idx);
+    const after  = textNode.textContent.slice(idx + text.length);
+    const mark = document.createElement('mark');
+    mark.className = 'hl'; mark.dataset.color = color;
+    mark.dataset.hlId = id; mark.title = '點擊移除螢光筆';
+    mark.textContent = text;
+    const frag = document.createDocumentFragment();
+    if (before) frag.appendChild(document.createTextNode(before));
+    frag.appendChild(mark);
+    if (after)  frag.appendChild(document.createTextNode(after));
+    textNode.parentNode.replaceChild(frag, textNode);
+    return;
+  }
+}
+
+// ── Notes ────────────────────────────────────────────────────
+function getNotes(id) { return JSON.parse(localStorage.getItem('notes_'+id)||'[]'); }
+function saveNotes(id, arr) { localStorage.setItem('notes_'+id, JSON.stringify(arr)); }
+
+function toggleNotes() {
+  const panel = document.getElementById('notes-panel');
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) {
+    renderNotes();
+    setTimeout(() => document.getElementById('note-input')?.focus(), 260);
+  }
+}
+
+function renderNotes() {
+  const notes = getNotes(currentId);
+  const list  = document.getElementById('notes-list');
+  const badge = document.getElementById('notes-badge');
+  if (badge) badge.textContent = notes.length ? `(${notes.length}) ` : '';
+  if (!list) return;
+  if (!notes.length) {
+    list.innerHTML = '<div class="notes-empty">還沒有筆記<br><span style="font-size:20px;opacity:0.4">📝</span></div>';
+    return;
+  }
+  list.innerHTML = notes.map(note => {
+    const d = new Date(note.createdAt);
+    const dateStr = `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    return `<div class="note-item">
+      <div class="note-item-meta">
+        <span class="note-item-date">${dateStr}</span>
+        <button class="note-item-del" onclick="deleteNote('${note.id}')" title="刪除筆記">✕</button>
+      </div>
+      <div class="note-item-text">${esc(note.text)}</div>
+    </div>`;
+  }).join('');
+}
+
+function addNote() {
+  const input = document.getElementById('note-input');
+  const text = input.value.trim();
+  if (!text) { input.focus(); return; }
+  const notes = getNotes(currentId);
+  notes.unshift({ id: Date.now().toString(36)+Math.random().toString(36).slice(2,4), text, createdAt: Date.now() });
+  saveNotes(currentId, notes);
+  input.value = '';
+  renderNotes();
+  toast('✓ 筆記已儲存');
+}
+
+function deleteNote(id) {
+  saveNotes(currentId, getNotes(currentId).filter(n => n.id !== id));
+  renderNotes();
+}
+
+// note-input: Ctrl+Enter to add
+document.addEventListener('keydown', function(e) {
+  if (e.target.id === 'note-input' && (e.ctrlKey||e.metaKey) && e.key === 'Enter') addNote();
+});
+
 // ── Custom Date Picker ────────────────────────────────────────
 (function() {
   const WEEKDAYS = ['日','一','二','三','四','五','六'];
@@ -3238,5 +3531,14 @@ ${imgsHtml}
   });
 })();
 </script>
+<!-- Highlight floating toolbar -->
+<div id="hl-toolbar">
+  <button class="hl-color-btn" style="background:#FFD600" title="黃色" onclick="hlApply('yellow')"></button>
+  <button class="hl-color-btn" style="background:#34C759" title="綠色" onclick="hlApply('green')"></button>
+  <button class="hl-color-btn" style="background:#FF4182" title="粉色" onclick="hlApply('pink')"></button>
+  <button class="hl-color-btn" style="background:#3296FF" title="藍色" onclick="hlApply('blue')"></button>
+  <div class="hl-sep"></div>
+  <button class="hl-erase-btn" onclick="hlHideToolbar()">✕ 關閉</button>
+</div>
 </body>
 </html>
