@@ -1360,6 +1360,52 @@ body.dark .btn-hl-active { background: rgba(255,214,0,0.15) !important; color: #
 .note-fmt-pick.active { background: var(--accent); color: white; border-color: var(--accent); font-weight: 600; }
 .note-fmt-pick:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
 .notes-empty { text-align: center; font-size: 12px; color: var(--text-faint); padding: 24px 0; }
+/* Note images */
+.note-img-grid { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.note-img-thumb {
+  width: 62px; height: 62px; object-fit: cover;
+  border-radius: 7px; cursor: pointer; border: 1px solid var(--border);
+  transition: opacity 0.12s, transform 0.12s;
+}
+.note-img-thumb:hover { opacity: 0.85; transform: scale(1.04); }
+/* Input area image previews */
+.note-input-imgs { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 7px; }
+.note-input-img-wrap { position: relative; }
+.note-input-img-thumb { width: 54px; height: 54px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); }
+.note-input-img-del {
+  position: absolute; top: -5px; right: -5px;
+  background: var(--danger); color: white; border: none;
+  border-radius: 50%; width: 16px; height: 16px; font-size: 9px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1;
+}
+.note-img-upload-btn {
+  background: none; border: 1px solid var(--border); border-radius: 6px;
+  padding: 5px 10px; font-size: 11px; color: var(--text-muted); cursor: pointer;
+  transition: all 0.1s; display: inline-flex; align-items: center; gap: 4px;
+}
+.note-img-upload-btn:hover { border-color: var(--accent); color: var(--accent); }
+/* Inline edit form */
+.note-edit-form { display: flex; flex-direction: column; gap: 6px; }
+.note-edit-textarea {
+  width: 100%; font-size: 13px; line-height: 1.6; resize: vertical;
+  border: 1.5px solid var(--accent); border-radius: 6px;
+  padding: 8px 10px; outline: none; background: var(--bg-light);
+  color: var(--text-main); font-family: 'Segoe UI','微軟正黑體',sans-serif;
+  min-height: 72px; box-shadow: 0 0 0 3px rgba(200,169,110,0.10);
+}
+body.dark .note-edit-textarea { background: #252320; }
+.note-edit-actions { display: flex; gap: 6px; }
+.note-edit-save {
+  flex: 1; background: var(--accent); color: white; border: none;
+  border-radius: 6px; padding: 6px; font-size: 12px; cursor: pointer;
+  font-family: 'Segoe UI','微軟正黑體',sans-serif;
+}
+.note-edit-save:hover { opacity: 0.85; }
+.note-edit-cancel {
+  background: none; border: 1px solid var(--border); border-radius: 6px;
+  padding: 6px 10px; font-size: 12px; color: var(--text-muted); cursor: pointer;
+}
+.note-edit-cancel:hover { border-color: var(--text-faint); color: var(--text-main); }
 
 /* ── Anchor notes ────────────────────────────────────────────── */
 .note-anchor {
@@ -4057,6 +4103,11 @@ function toggleNotes() {
   });
 })();
 
+let _editingNoteId = null;
+let _editFmt = 'txt';
+let _noteImages = [];      // images for new note input
+let _editImages = [];      // images added during edit
+
 function renderNotes() {
   const notes = getNotes(currentId);
   const list  = document.getElementById('notes-list');
@@ -4072,56 +4123,176 @@ function renderNotes() {
     const isMd = fmt === 'md';
     const d = new Date(note.createdAt);
     const dateStr = `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    const anchorRef = note.anchorText
+      ? `<div class="note-anchor-ref" onclick="focusAnchor('${note.id}')" title="跳至文章標記處">🔗 「${esc(note.anchorText.slice(0,30))}${note.anchorText.length>30?'…':''}」</div>`
+      : '';
+    const imgs = note.images || [];
+    const imgGrid = imgs.length ? `<div class="note-img-grid">${imgs.map((src,i)=>`<img class="note-img-thumb" src="${src}" alt="筆記圖片" onclick="openNoteImg(${JSON.stringify(imgs)},${i})">`).join('')}</div>` : '';
+
+    if (_editingNoteId === note.id) {
+      // ── Inline edit form ──
+      const editImgGrid = _editImages.length
+        ? `<div class="note-input-imgs" id="edit-imgs-preview">${_editImages.map((_,i)=>`<div class="note-input-img-wrap"><img class="note-input-img-thumb" src="${_editImages[i]}"><button class="note-input-img-del" onclick="removeEditImg(${i})">✕</button></div>`).join('')}</div>`
+        : '';
+      return `<div class="note-item" data-note-id="${note.id}" style="border-color:var(--accent)">
+        ${anchorRef}
+        <div class="note-edit-form">
+          <div class="note-fmt-row" style="margin-bottom:0">
+            <button class="note-fmt-pick${_editFmt==='txt'?' active':''}" onclick="setEditFmt('txt')">TXT</button>
+            <button class="note-fmt-pick${_editFmt==='md'?' active':''}" onclick="setEditFmt('md')">MD</button>
+          </div>
+          ${editImgGrid}
+          ${imgGrid ? `<div class="note-img-grid" style="opacity:.6">${imgs.map((src,i)=>`<img class="note-img-thumb" src="${src}" alt="" onclick="openNoteImg(${JSON.stringify(imgs)},${i})">`).join('')}</div>` : ''}
+          <textarea class="note-edit-textarea" id="edit-ta-${note.id}">${esc(note.text)}</textarea>
+          <div style="display:flex;gap:5px;align-items:center">
+            <button class="note-img-upload-btn" onclick="document.getElementById('note-edit-img-file').click()">📷</button>
+            <input type="file" id="note-edit-img-file" accept="image/*" multiple style="display:none" onchange="onEditImgSelect(this)">
+            <div class="note-edit-actions" style="flex:1">
+              <button class="note-edit-save" onclick="saveNoteEdit('${note.id}')">✓ 儲存</button>
+              <button class="note-edit-cancel" onclick="cancelEditNote()">取消</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }
+
     const contentHtml = isMd
       ? `<div class="note-item-text md-rendered">${marked.parse(note.text)}</div>`
       : `<div class="note-item-text">${esc(note.text)}</div>`;
-    const anchorRef = note.anchorText
-      ? `<div class="note-anchor-ref" onclick="focusAnchor('${note.id}')" title="跳至文章標記處">🔗 「${esc(note.anchorText.slice(0, 30))}${note.anchorText.length > 30 ? '…' : ''}」</div>`
-      : '';
     return `<div class="note-item" data-note-id="${note.id}">
       <div class="note-item-meta">
-        <span class="note-item-date">${note.anchorText ? '📌 ' : ''}${dateStr}</span>
+        <span class="note-item-date">${note.anchorText?'📌 ':''}${dateStr}</span>
         <div style="display:flex;align-items:center;gap:4px">
-          <button class="note-fmt-btn${isMd?' md-active':''}"
-            onclick="toggleNoteFormat('${note.id}')"
-            title="${isMd ? '切換為純文字' : '切換為 Markdown'}">${isMd ? 'MD' : 'TXT'}</button>
+          <button class="note-fmt-btn${isMd?' md-active':''}" onclick="toggleNoteFormat('${note.id}')"
+            title="${isMd?'切換為純文字':'切換為 Markdown'}">${isMd?'MD':'TXT'}</button>
+          <button class="note-fmt-btn" onclick="startEditNote('${note.id}')" title="編輯筆記">✎</button>
           <button class="note-item-del" onclick="deleteNote('${note.id}')" title="刪除筆記">✕</button>
         </div>
       </div>
       ${anchorRef}
       ${contentHtml}
+      ${imgGrid}
     </div>`;
   }).join('');
+
+  // Restore textarea content for editing note
+  if (_editingNoteId) {
+    const ta = document.getElementById(`edit-ta-${_editingNoteId}`);
+    if (ta) {
+      const notes2 = getNotes(currentId);
+      const note2 = notes2.find(n => n.id === _editingNoteId);
+      if (note2) ta.value = note2.text;
+      setTimeout(() => ta?.focus(), 30);
+    }
+  }
+}
+
+function startEditNote(id) {
+  const note = getNotes(currentId).find(n => n.id === id);
+  if (!note) return;
+  _editingNoteId = id;
+  _editFmt = note.format || 'txt';
+  _editImages = [];
+  renderNotes();
+}
+function setEditFmt(fmt) {
+  _editFmt = fmt;
+  renderNotes();
+}
+function cancelEditNote() {
+  _editingNoteId = null; _editImages = [];
+  renderNotes();
+}
+function saveNoteEdit(id) {
+  const ta = document.getElementById(`edit-ta-${id}`);
+  const text = ta?.value.trim();
+  if (!text) { ta?.focus(); return; }
+  const notes = getNotes(currentId);
+  const note = notes.find(n => n.id === id);
+  if (!note) return;
+  note.text = text;
+  note.format = _editFmt;
+  note.images = [...(note.images||[]), ..._editImages];
+  saveNotes(currentId, notes);
+  _editingNoteId = null; _editImages = [];
+  renderNotes();
+  toast('✓ 筆記已更新');
 }
 
 function toggleNoteFormat(id) {
   const notes = getNotes(currentId);
   const note = notes.find(n => n.id === id);
   if (!note) return;
-  note.format = (note.format || 'txt') === 'txt' ? 'md' : 'txt';
+  note.format = (note.format||'txt') === 'txt' ? 'md' : 'txt';
   saveNotes(currentId, notes);
   renderNotes();
+}
+
+// ── Note images ───────────────────────────────────────────────
+async function onNoteImgSelect(input) {
+  const files = input.files;
+  if (!files?.length) return;
+  const compressed = await compressFiles(files);
+  _noteImages.push(...compressed);
+  renderNoteInputImgs();
+  input.value = '';
+}
+function renderNoteInputImgs() {
+  const wrap = document.getElementById('note-input-imgs');
+  if (!wrap) return;
+  if (!_noteImages.length) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+  wrap.style.display = 'flex';
+  wrap.innerHTML = _noteImages.map((_,i)=>`
+    <div class="note-input-img-wrap">
+      <img class="note-input-img-thumb" src="${_noteImages[i]}" alt="">
+      <button class="note-input-img-del" onclick="removeNoteInputImg(${i})">✕</button>
+    </div>`).join('');
+}
+function removeNoteInputImg(i) {
+  _noteImages.splice(i, 1);
+  renderNoteInputImgs();
+}
+
+async function onEditImgSelect(input) {
+  const files = input.files;
+  if (!files?.length) return;
+  const compressed = await compressFiles(files);
+  _editImages.push(...compressed);
+  renderNotes();
+  input.value = '';
+}
+function removeEditImg(i) {
+  _editImages.splice(i, 1);
+  renderNotes();
+}
+
+function openNoteImg(imgs, idx) {
+  openLightbox(imgs, idx);
 }
 
 function addNote() {
   const input = document.getElementById('note-input');
   const text = input.value.trim();
-  if (!text) { input.focus(); return; }
+  if (!text && !_noteImages.length) { input.focus(); return; }
   const notes = getNotes(currentId);
   notes.unshift({
     id: Date.now().toString(36)+Math.random().toString(36).slice(2,4),
-    text, format: _noteFmt, createdAt: Date.now()
+    text: text || ' ', format: _noteFmt,
+    images: [..._noteImages],
+    createdAt: Date.now()
   });
   saveNotes(currentId, notes);
   input.value = '';
+  _noteImages = [];
+  renderNoteInputImgs();
   renderNotes();
   toast('✓ 筆記已儲存');
 }
 
 function deleteNote(id) {
-  // Remove anchor span from article DOM if present
   const span = document.querySelector(`.note-anchor[data-note-id="${id}"]`);
   if (span) span.replaceWith(document.createTextNode(span.textContent));
+  if (_editingNoteId === id) { _editingNoteId = null; _editImages = []; }
   saveNotes(currentId, getNotes(currentId).filter(n => n.id !== id));
   renderNotes();
 }
@@ -4286,8 +4457,13 @@ document.addEventListener('keydown', function(e) {
       <button class="note-fmt-pick active" id="fmt-txt" onclick="setNoteFormat('txt')">TXT</button>
       <button class="note-fmt-pick" id="fmt-md" onclick="setNoteFormat('md')">MD</button>
     </div>
+    <div class="note-input-imgs" id="note-input-imgs" style="display:none"></div>
     <textarea class="notes-textarea" id="note-input" placeholder="寫下你的想法、摘錄重點...&#10;Ctrl+Enter 儲存"></textarea>
-    <button class="notes-add-btn" onclick="addNote()">+ 新增筆記</button>
+    <div style="display:flex;gap:6px;margin-top:6px">
+      <button class="note-img-upload-btn" onclick="document.getElementById('note-img-file').click()">📷 圖片</button>
+      <button class="notes-add-btn" style="flex:1;margin-top:0" onclick="addNote()">+ 新增筆記</button>
+    </div>
+    <input type="file" id="note-img-file" accept="image/*" multiple style="display:none" onchange="onNoteImgSelect(this)">
   </div>
   <div class="notes-list" id="notes-list"></div>
 </div>
