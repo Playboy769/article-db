@@ -1321,6 +1321,37 @@ body.dark .btn-hl-active { background: rgba(255,214,0,0.15) !important; color: #
 }
 .note-item-del:hover { color: var(--danger); }
 .note-item-text { font-size: 13px; color: var(--text-main); line-height: 1.65; white-space: pre-wrap; }
+.note-item-text.md-rendered { white-space: normal; }
+.note-item-text.md-rendered p { margin-bottom: 0.5em; }
+.note-item-text.md-rendered p:last-child { margin-bottom: 0; }
+.note-item-text.md-rendered h1,.note-item-text.md-rendered h2,
+.note-item-text.md-rendered h3 { font-size: 13px; font-weight: 700; margin: 6px 0 3px; }
+.note-item-text.md-rendered code { background: var(--bg-dark); border-radius: 3px; padding: 1px 5px; font-size: 12px; font-family: 'Courier New',monospace; }
+.note-item-text.md-rendered pre { background: var(--bg-dark); border-radius: 5px; padding: 8px 10px; overflow-x: auto; margin: 6px 0; }
+.note-item-text.md-rendered pre code { background: none; padding: 0; }
+.note-item-text.md-rendered ul,.note-item-text.md-rendered ol { padding-left: 18px; margin: 4px 0; }
+.note-item-text.md-rendered blockquote { border-left: 3px solid var(--accent); padding-left: 10px; color: var(--text-muted); margin: 6px 0; }
+.note-item-text.md-rendered strong { font-weight: 600; }
+.note-item-text.md-rendered a { color: var(--accent); }
+/* format toggle */
+.note-fmt-btn {
+  background: none; border: 1px solid var(--border); border-radius: 4px;
+  font-size: 10px; padding: 1px 5px; cursor: pointer; color: var(--text-muted);
+  transition: all 0.1s; line-height: 1.6; font-family: 'Segoe UI',monospace;
+}
+.note-fmt-btn:hover { border-color: var(--accent); color: var(--accent); }
+.note-fmt-btn.md-active { background: var(--accent); color: white; border-color: var(--accent); }
+/* input format toggle */
+.note-fmt-row {
+  display: flex; gap: 4px; margin-bottom: 6px;
+}
+.note-fmt-pick {
+  font-size: 11px; padding: 3px 9px; border-radius: 5px; border: 1px solid var(--border);
+  background: none; color: var(--text-muted); cursor: pointer; transition: all 0.12s;
+  font-family: 'Segoe UI',monospace;
+}
+.note-fmt-pick.active { background: var(--accent); color: white; border-color: var(--accent); font-weight: 600; }
+.note-fmt-pick:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
 .notes-empty { text-align: center; font-size: 12px; color: var(--text-faint); padding: 24px 0; }
 /* dark mode */
 body.dark #notes-panel { background: #1e1c1a; }
@@ -1721,6 +1752,10 @@ input:-webkit-autofill:focus {
           <button class="notes-panel-close" onclick="toggleNotes()">×</button>
         </div>
         <div class="notes-input-wrap">
+          <div class="note-fmt-row">
+            <button class="note-fmt-pick active" id="fmt-txt" onclick="setNoteFormat('txt')">TXT</button>
+            <button class="note-fmt-pick" id="fmt-md" onclick="setNoteFormat('md')">MD</button>
+          </div>
           <textarea class="notes-textarea" id="note-input" placeholder="寫下你的想法、摘錄重點...&#10;按下新增儲存筆記"></textarea>
           <button class="notes-add-btn" onclick="addNote()">+ 新增筆記</button>
         </div>
@@ -3723,6 +3758,17 @@ function hlWrapInDOM(container, text, color, id) {
 function getNotes(id) { return JSON.parse(localStorage.getItem('notes_'+id)||'[]'); }
 function saveNotes(id, arr) { localStorage.setItem('notes_'+id, JSON.stringify(arr)); }
 
+let _noteFmt = 'txt'; // current input format
+function setNoteFormat(fmt) {
+  _noteFmt = fmt;
+  document.getElementById('fmt-txt')?.classList.toggle('active', fmt === 'txt');
+  document.getElementById('fmt-md')?.classList.toggle('active', fmt === 'md');
+  const ta = document.getElementById('note-input');
+  if (ta) ta.placeholder = fmt === 'md'
+    ? '支援 Markdown：**粗體**、`程式碼`、- 清單…\nCtrl+Enter 儲存'
+    : '寫下你的想法、摘錄重點…\nCtrl+Enter 儲存';
+}
+
 function toggleNotes() {
   const panel = document.getElementById('notes-panel');
   panel.classList.toggle('open');
@@ -3743,16 +3789,35 @@ function renderNotes() {
     return;
   }
   list.innerHTML = notes.map(note => {
+    const fmt = note.format || 'txt';
+    const isMd = fmt === 'md';
     const d = new Date(note.createdAt);
     const dateStr = `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-    return `<div class="note-item">
+    const contentHtml = isMd
+      ? `<div class="note-item-text md-rendered">${marked.parse(note.text)}</div>`
+      : `<div class="note-item-text">${esc(note.text)}</div>`;
+    return `<div class="note-item" data-note-id="${note.id}">
       <div class="note-item-meta">
         <span class="note-item-date">${dateStr}</span>
-        <button class="note-item-del" onclick="deleteNote('${note.id}')" title="刪除筆記">✕</button>
+        <div style="display:flex;align-items:center;gap:4px">
+          <button class="note-fmt-btn${isMd?' md-active':''}"
+            onclick="toggleNoteFormat('${note.id}')"
+            title="${isMd ? '切換為純文字' : '切換為 Markdown'}">${isMd ? 'MD' : 'TXT'}</button>
+          <button class="note-item-del" onclick="deleteNote('${note.id}')" title="刪除筆記">✕</button>
+        </div>
       </div>
-      <div class="note-item-text">${esc(note.text)}</div>
+      ${contentHtml}
     </div>`;
   }).join('');
+}
+
+function toggleNoteFormat(id) {
+  const notes = getNotes(currentId);
+  const note = notes.find(n => n.id === id);
+  if (!note) return;
+  note.format = (note.format || 'txt') === 'txt' ? 'md' : 'txt';
+  saveNotes(currentId, notes);
+  renderNotes();
 }
 
 function addNote() {
@@ -3760,7 +3825,10 @@ function addNote() {
   const text = input.value.trim();
   if (!text) { input.focus(); return; }
   const notes = getNotes(currentId);
-  notes.unshift({ id: Date.now().toString(36)+Math.random().toString(36).slice(2,4), text, createdAt: Date.now() });
+  notes.unshift({
+    id: Date.now().toString(36)+Math.random().toString(36).slice(2,4),
+    text, format: _noteFmt, createdAt: Date.now()
+  });
   saveNotes(currentId, notes);
   input.value = '';
   renderNotes();
