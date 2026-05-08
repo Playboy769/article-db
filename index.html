@@ -3517,19 +3517,26 @@ function renderLinkFolders() {
   const folders = getLinkFolders();
   const container = document.getElementById('link-folder-tabs');
   if (!container) return;
-  const allActive = currentLinkFolder === 'all';
-  let html = `<div class="link-folder-row">
-    <button class="link-folder-tab${allActive?' active':''}" onclick="filterLinkFolder('all')">📂 所有連結</button>
+  const allCount = links.length;
+
+  let html = `<div class="folder-tab ${currentLinkFolder === 'all' ? 'active' : ''}" onclick="filterLinkFolder('all')">
+    <span class="folder-tab-icon">🔗</span>
+    <span class="folder-tab-name">所有連結</span>
+    <span class="folder-tab-count">${allCount}</span>
   </div>`;
+
   folders.forEach(f => {
+    const count = links.filter(l => l.folder === f).length;
     const active = currentLinkFolder === f;
-    html += `<div class="link-folder-row">
-      <button class="link-folder-tab${active?' active':''}" onclick="filterLinkFolder('${escAttr(f)}')">${esc(f)}</button>
-      <button class="link-folder-del-btn" onclick="deleteLinkFolder('${escAttr(f)}')" title="刪除資料夾">✕</button>
+    html += `<div class="folder-tab ${active ? 'active' : ''}" onclick="filterLinkFolder('${escAttr(f)}')">
+      <span class="folder-tab-icon">📁</span>
+      <span class="folder-tab-name">${esc(f)}</span>
+      <span class="folder-tab-count">${count}</span>
+      <button class="folder-tab-delete" onclick="event.stopPropagation();deleteLinkFolder('${escAttr(f)}')" title="刪除資料夾">✕</button>
     </div>`;
   });
+
   container.innerHTML = html;
-  // update datalist for form
   const dl = document.getElementById('link-folder-datalist');
   if (dl) dl.innerHTML = folders.map(f => `<option value="${esc(f)}">`).join('');
 }
