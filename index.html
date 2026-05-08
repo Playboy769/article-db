@@ -1265,28 +1265,35 @@ body.hl-active #view-content { cursor: text; }
 .btn-hl-active { background: rgba(255,214,0,0.22) !important; border-color: #c8a020 !important; color: #7a6000 !important; }
 body.dark .btn-hl-active { background: rgba(255,214,0,0.15) !important; color: #c8a020 !important; }
 
-/* ── Notes Panel ─────────────────────────────────────────────── */
+/* ── Notes floating window ───────────────────────────────────── */
 #notes-panel {
-  position: absolute; top: 0; right: 0; bottom: 0;
-  width: 290px; background: var(--bg-darker);
-  border-left: 1px solid var(--border-dark);
-  display: flex; flex-direction: column;
-  transform: translateX(100%);
-  transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
-  z-index: 40;
+  position: fixed;
+  top: 110px; right: 40px;
+  width: 320px; min-width: 240px;
+  height: 500px; min-height: 180px;
+  background: var(--bg-darker);
+  border: 1px solid var(--border-dark);
+  border-radius: 14px;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.07);
+  display: none; flex-direction: column;
+  z-index: 400; overflow: hidden;
+  resize: both;
 }
-#notes-panel.open { transform: translateX(0); }
+#notes-panel.open { display: flex; }
 .notes-panel-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 16px 12px; border-bottom: 1px solid var(--border-dark); flex-shrink: 0;
+  padding: 12px 14px 10px; border-bottom: 1px solid var(--border-dark);
+  flex-shrink: 0; cursor: move; user-select: none;
+  background: var(--bg-darker);
 }
-.notes-panel-title { font-size: 13px; font-weight: 600; color: var(--text-main); }
+.notes-panel-title { font-size: 13px; font-weight: 600; color: var(--text-main); pointer-events: none; }
 .notes-panel-close {
-  background: none; border: none; font-size: 18px; line-height: 1;
-  color: var(--text-muted); cursor: pointer; padding: 2px 4px;
-  border-radius: 4px; transition: background 0.1s, color 0.1s;
+  background: none; border: none; font-size: 16px; line-height: 1;
+  color: var(--text-muted); cursor: pointer; padding: 3px 6px;
+  border-radius: 6px; transition: background 0.1s, color 0.1s;
+  flex-shrink: 0;
 }
-.notes-panel-close:hover { background: var(--bg-light); color: var(--text-main); }
+.notes-panel-close:hover { background: rgba(220,50,50,0.12); color: var(--danger); }
 .notes-input-wrap {
   padding: 12px 14px; border-bottom: 1px solid var(--border-dark); flex-shrink: 0;
 }
@@ -1420,7 +1427,8 @@ body.dark .anchor-editor-quote { background: #252320; }
 body.dark .anchor-editor-textarea { background: #252320; border-color: #3a3630; color: var(--text-main); }
 
 /* dark mode */
-body.dark #notes-panel { background: #1e1c1a; }
+body.dark #notes-panel { background: #1e1c1a; box-shadow: 0 12px 48px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06); }
+body.dark .notes-panel-header { background: #1e1c1a; }
 body.dark .notes-textarea { background: #252320; border-color: #3a3630; }
 body.dark .note-item { background: #252320; border-color: #3a3630; }
 
@@ -1810,22 +1818,6 @@ input:-webkit-autofill:focus {
       <div class="article-scroll-body">
         <div id="view-image-gallery" class="image-gallery"></div>
         <div class="article-content-display" id="view-content"></div>
-      </div>
-      <!-- Notes Panel -->
-      <div id="notes-panel">
-        <div class="notes-panel-header">
-          <span class="notes-panel-title">📝 筆記</span>
-          <button class="notes-panel-close" onclick="toggleNotes()">×</button>
-        </div>
-        <div class="notes-input-wrap">
-          <div class="note-fmt-row">
-            <button class="note-fmt-pick active" id="fmt-txt" onclick="setNoteFormat('txt')">TXT</button>
-            <button class="note-fmt-pick" id="fmt-md" onclick="setNoteFormat('md')">MD</button>
-          </div>
-          <textarea class="notes-textarea" id="note-input" placeholder="寫下你的想法、摘錄重點...&#10;按下新增儲存筆記"></textarea>
-          <button class="notes-add-btn" onclick="addNote()">+ 新增筆記</button>
-        </div>
-        <div class="notes-list" id="notes-list"></div>
       </div>
     </div>
 
@@ -4013,12 +4005,57 @@ function setNoteFormat(fmt) {
 
 function toggleNotes() {
   const panel = document.getElementById('notes-panel');
-  panel.classList.toggle('open');
-  if (panel.classList.contains('open')) {
+  const isOpen = panel.classList.toggle('open');
+  if (isOpen) {
     renderNotes();
-    setTimeout(() => document.getElementById('note-input')?.focus(), 260);
+    // Reset position to default if first open or offscreen
+    const r = panel.getBoundingClientRect();
+    if (r.right <= 0 || r.bottom <= 0) {
+      panel.style.left = ''; panel.style.top = '';
+      panel.style.right = '40px'; panel.style.removeProperty('right');
+    }
+    setTimeout(() => document.getElementById('note-input')?.focus(), 60);
   }
 }
+
+// ── Notes window drag ─────────────────────────────────────────
+(function setupNotesDrag() {
+  let dragging = false, ox = 0, oy = 0;
+  const getPanel = () => document.getElementById('notes-panel');
+  const getHeader = () => document.getElementById('notes-panel-header');
+
+  document.addEventListener('mousedown', function(e) {
+    const header = getHeader();
+    if (!header || !header.contains(e.target)) return;
+    if (e.target.closest('.notes-panel-close')) return;
+    const panel = getPanel();
+    const rect = panel.getBoundingClientRect();
+    // Convert to left/top positioning
+    panel.style.right = 'auto';
+    panel.style.left = rect.left + 'px';
+    panel.style.top  = rect.top  + 'px';
+    ox = e.clientX - rect.left;
+    oy = e.clientY - rect.top;
+    dragging = true;
+    document.body.style.userSelect = 'none';
+    panel.style.transition = 'none';
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (!dragging) return;
+    const panel = getPanel();
+    let x = e.clientX - ox;
+    let y = e.clientY - oy;
+    x = Math.max(0, Math.min(window.innerWidth  - panel.offsetWidth,  x));
+    y = Math.max(0, Math.min(window.innerHeight - 40, y));
+    panel.style.left = x + 'px';
+    panel.style.top  = y + 'px';
+  });
+
+  document.addEventListener('mouseup', function() {
+    if (dragging) { dragging = false; document.body.style.userSelect = ''; }
+  });
+})();
 
 function renderNotes() {
   const notes = getNotes(currentId);
@@ -4238,6 +4275,23 @@ document.addEventListener('keydown', function(e) {
   });
 })();
 </script>
+<!-- Notes floating window -->
+<div id="notes-panel">
+  <div class="notes-panel-header" id="notes-panel-header">
+    <span class="notes-panel-title">📝 筆記</span>
+    <button class="notes-panel-close" onclick="toggleNotes()" title="關閉">×</button>
+  </div>
+  <div class="notes-input-wrap">
+    <div class="note-fmt-row">
+      <button class="note-fmt-pick active" id="fmt-txt" onclick="setNoteFormat('txt')">TXT</button>
+      <button class="note-fmt-pick" id="fmt-md" onclick="setNoteFormat('md')">MD</button>
+    </div>
+    <textarea class="notes-textarea" id="note-input" placeholder="寫下你的想法、摘錄重點...&#10;Ctrl+Enter 儲存"></textarea>
+    <button class="notes-add-btn" onclick="addNote()">+ 新增筆記</button>
+  </div>
+  <div class="notes-list" id="notes-list"></div>
+</div>
+
 <!-- Anchor note editor popup -->
 <div id="anchor-editor">
   <div class="anchor-editor-quote" id="anchor-editor-quote"></div>
