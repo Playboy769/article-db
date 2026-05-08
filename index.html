@@ -1353,6 +1353,72 @@ body.dark .btn-hl-active { background: rgba(255,214,0,0.15) !important; color: #
 .note-fmt-pick.active { background: var(--accent); color: white; border-color: var(--accent); font-weight: 600; }
 .note-fmt-pick:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
 .notes-empty { text-align: center; font-size: 12px; color: var(--text-faint); padding: 24px 0; }
+
+/* ── Anchor notes ────────────────────────────────────────────── */
+.note-anchor {
+  cursor: pointer; border-bottom: 2px dotted var(--accent);
+  border-radius: 1px; transition: background 0.1s;
+}
+.note-anchor:hover { background: rgba(200,169,110,0.18); }
+#anchor-editor {
+  position: fixed; z-index: 580;
+  background: var(--bg-darker); border: 1px solid var(--border-dark);
+  border-radius: 12px; padding: 14px 16px; width: 290px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  display: none; flex-direction: column; gap: 8px;
+}
+.anchor-editor-quote {
+  font-size: 12px; color: var(--text-muted);
+  border-left: 3px solid var(--accent); padding: 4px 8px;
+  background: var(--bg-light); border-radius: 3px; line-height: 1.4;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.anchor-editor-textarea {
+  width: 100%; height: 72px; font-size: 12px; resize: none;
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 8px; outline: none; background: var(--bg-light);
+  color: var(--text-main); font-family: 'Segoe UI','微軟正黑體',sans-serif;
+  transition: border-color 0.15s;
+}
+.anchor-editor-textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(200,169,110,0.12); }
+.anchor-editor-actions { display: flex; gap: 6px; }
+.anchor-save-btn {
+  flex: 1; background: var(--accent); color: white; border: none;
+  border-radius: 6px; padding: 7px; font-size: 12px; cursor: pointer;
+  font-family: 'Segoe UI','微軟正黑體',sans-serif; transition: opacity 0.15s;
+}
+.anchor-save-btn:hover { opacity: 0.85; }
+.anchor-cancel-btn {
+  background: none; border: 1px solid var(--border); border-radius: 6px;
+  padding: 7px 12px; font-size: 12px; color: var(--text-muted); cursor: pointer;
+  transition: color 0.1s, border-color 0.1s;
+}
+.anchor-cancel-btn:hover { color: var(--text-main); border-color: var(--text-faint); }
+#anchor-tooltip {
+  position: fixed; z-index: 560;
+  background: #2a2520; color: #f0ece6;
+  border-radius: 10px; padding: 10px 12px; max-width: 240px;
+  font-size: 12px; line-height: 1.55;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  display: none; pointer-events: none; white-space: pre-wrap;
+}
+#anchor-tooltip.md-rendered { white-space: normal; }
+#anchor-tooltip.md-rendered p { margin-bottom: 0.4em; }
+#anchor-tooltip.md-rendered p:last-child { margin-bottom: 0; }
+#anchor-tooltip.md-rendered strong { font-weight: 600; }
+#anchor-tooltip.md-rendered code { background: rgba(255,255,255,0.12); border-radius:3px; padding: 1px 4px; font-size: 11px; }
+.note-anchor-ref {
+  font-size: 11px; color: var(--accent-dim); cursor: pointer;
+  border-left: 2px solid var(--accent); padding: 2px 7px;
+  margin-bottom: 6px; background: rgba(200,169,110,0.08);
+  border-radius: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: background 0.1s;
+}
+.note-anchor-ref:hover { background: rgba(200,169,110,0.18); }
+body.dark #anchor-editor { background: #2a2720; border-color: #3a3630; }
+body.dark .anchor-editor-quote { background: #252320; }
+body.dark .anchor-editor-textarea { background: #252320; border-color: #3a3630; color: var(--text-main); }
+
 /* dark mode */
 body.dark #notes-panel { background: #1e1c1a; }
 body.dark .notes-textarea { background: #252320; border-color: #3a3630; }
@@ -2460,6 +2526,7 @@ function viewArticle(id) {
 
   document.getElementById('view-content').innerHTML = marked.parse(a.content || '');
   applyStoredHighlights(id);
+  applyAnchorNotes(id);
 
   // Close notes panel when switching articles, update badge
   document.getElementById('notes-panel')?.classList.remove('open');
@@ -3641,6 +3708,174 @@ function exportLinksJSON() {
   a.click(); URL.revokeObjectURL(url);
 }
 
+// ── Anchor Notes ─────────────────────────────────────────────
+let _anchorText = '', _anchorRange = null, _anchorFmt = 'txt';
+
+function startAnchorNote() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const text = sel.toString().trim();
+  if (!text) return;
+  _anchorText = text;
+  try { _anchorRange = sel.getRangeAt(0).cloneRange(); } catch(e) { _anchorRange = null; }
+  const rect = sel.getRangeAt(0).getBoundingClientRect();
+  document.getElementById('hl-toolbar').style.display = 'none';
+  sel.removeAllRanges();
+
+  const editor = document.getElementById('anchor-editor');
+  document.getElementById('anchor-editor-quote').textContent =
+    '「' + text.slice(0, 50) + (text.length > 50 ? '…' : '') + '」';
+  document.getElementById('anchor-note-input').value = '';
+  setAnchorFmt('txt');
+  editor.style.display = 'flex';
+
+  requestAnimationFrame(() => {
+    const ew = editor.offsetWidth, eh = editor.offsetHeight;
+    let left = rect.left + rect.width / 2 - ew / 2;
+    let top  = rect.bottom + 12;
+    if (left < 8) left = 8;
+    if (left + ew > window.innerWidth - 8) left = window.innerWidth - ew - 8;
+    if (top + eh > window.innerHeight - 8) top = rect.top - eh - 12;
+    editor.style.left = left + 'px';
+    editor.style.top  = top  + 'px';
+    document.getElementById('anchor-note-input').focus();
+  });
+}
+
+function setAnchorFmt(fmt) {
+  _anchorFmt = fmt;
+  document.getElementById('afmt-txt')?.classList.toggle('active', fmt === 'txt');
+  document.getElementById('afmt-md')?.classList.toggle('active', fmt === 'md');
+}
+
+function hideAnchorEditor() {
+  document.getElementById('anchor-editor').style.display = 'none';
+  _anchorText = ''; _anchorRange = null;
+}
+
+function saveAnchorNote() {
+  const noteText = document.getElementById('anchor-note-input').value.trim();
+  if (!noteText) { document.getElementById('anchor-note-input').focus(); return; }
+  const noteId = Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+
+  // Try surroundContents first, fall back to text-walk
+  const content = document.getElementById('view-content');
+  let wrapped = false;
+  if (_anchorRange && content.contains(_anchorRange.commonAncestorContainer)) {
+    try {
+      const span = document.createElement('span');
+      span.className = 'note-anchor';
+      span.dataset.noteId = noteId;
+      _anchorRange.surroundContents(span);
+      wrapped = true;
+    } catch(e) {}
+  }
+  if (!wrapped) wrapAnchorInDOM(content, _anchorText, noteId);
+
+  const notes = getNotes(currentId);
+  notes.unshift({ id: noteId, text: noteText, format: _anchorFmt, anchorText: _anchorText, createdAt: Date.now() });
+  saveNotes(currentId, notes);
+  renderNotes();
+  hideAnchorEditor();
+  toast('✓ 錨點筆記已儲存');
+}
+
+function wrapAnchorInDOM(container, text, noteId) {
+  const nodes = [];
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+  let n; while (n = walker.nextNode()) nodes.push(n);
+  for (const textNode of nodes) {
+    if (!textNode.parentNode) continue;
+    if (textNode.parentNode.closest('.note-anchor, mark.hl')) continue;
+    const idx = textNode.textContent.indexOf(text);
+    if (idx === -1) continue;
+    const before = textNode.textContent.slice(0, idx);
+    const after  = textNode.textContent.slice(idx + text.length);
+    const span = document.createElement('span');
+    span.className = 'note-anchor'; span.dataset.noteId = noteId; span.textContent = text;
+    const frag = document.createDocumentFragment();
+    if (before) frag.appendChild(document.createTextNode(before));
+    frag.appendChild(span);
+    if (after)  frag.appendChild(document.createTextNode(after));
+    textNode.parentNode.replaceChild(frag, textNode);
+    return;
+  }
+}
+
+function applyAnchorNotes(articleId) {
+  const anchored = getNotes(articleId).filter(n => n.anchorText);
+  if (!anchored.length) return;
+  const content = document.getElementById('view-content');
+  anchored.forEach(n => wrapAnchorInDOM(content, n.anchorText, n.id));
+}
+
+function focusAnchor(noteId) {
+  const span = document.querySelector(`.note-anchor[data-note-id="${noteId}"]`);
+  if (!span) { toast('文章中找不到對應標記'); return; }
+  span.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  span.style.outline = '2px solid var(--accent)';
+  span.style.outlineOffset = '2px';
+  setTimeout(() => { span.style.outline = ''; span.style.outlineOffset = ''; }, 1600);
+}
+
+// Hover anchor → show tooltip
+document.addEventListener('mouseover', function(e) {
+  const anchor = e.target.closest('.note-anchor');
+  const tooltip = document.getElementById('anchor-tooltip');
+  if (!anchor || !tooltip) return;
+  const noteId = anchor.dataset.noteId;
+  const note = getNotes(currentId).find(n => n.id === noteId);
+  if (!note) return;
+  const isMd = note.format === 'md';
+  tooltip.className = isMd ? 'md-rendered' : '';
+  tooltip.innerHTML = isMd ? marked.parse(note.text) : esc(note.text);
+  tooltip.style.display = 'block';
+  requestAnimationFrame(() => {
+    const rect = anchor.getBoundingClientRect();
+    let left = rect.left, top = rect.top - tooltip.offsetHeight - 8;
+    if (left + tooltip.offsetWidth > window.innerWidth - 8) left = window.innerWidth - tooltip.offsetWidth - 8;
+    if (left < 8) left = 8;
+    if (top < 8) top = rect.bottom + 8;
+    tooltip.style.left = left + 'px'; tooltip.style.top = top + 'px';
+  });
+});
+document.addEventListener('mouseout', function(e) {
+  if (e.target.closest('.note-anchor'))
+    document.getElementById('anchor-tooltip').style.display = 'none';
+});
+
+// Click anchor → open notes panel + scroll to note
+document.addEventListener('click', function(e) {
+  const anchor = e.target.closest('.note-anchor');
+  if (!anchor) return;
+  document.getElementById('anchor-tooltip').style.display = 'none';
+  const noteId = anchor.dataset.noteId;
+  const panel = document.getElementById('notes-panel');
+  if (!panel.classList.contains('open')) toggleNotes();
+  setTimeout(() => {
+    const noteEl = document.querySelector(`.note-item[data-note-id="${noteId}"]`);
+    if (noteEl) {
+      noteEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      noteEl.style.outline = '2px solid var(--accent)';
+      noteEl.style.outlineOffset = '2px';
+      setTimeout(() => { noteEl.style.outline = ''; noteEl.style.outlineOffset = ''; }, 1500);
+    }
+  }, panel.classList.contains('open') ? 50 : 280);
+});
+
+// Close anchor editor when clicking outside
+document.addEventListener('mousedown', function(e) {
+  const editor = document.getElementById('anchor-editor');
+  if (editor.style.display !== 'none' && !editor.contains(e.target))
+    hideAnchorEditor();
+});
+
+// Anchor editor: Enter to save
+document.addEventListener('keydown', function(e) {
+  if (e.target.id === 'anchor-note-input' && (e.ctrlKey || e.metaKey) && e.key === 'Enter') saveAnchorNote();
+  if (e.target.id === 'anchor-note-input' && e.key === 'Escape') hideAnchorEditor();
+});
+
 // ── Highlighter ──────────────────────────────────────────────
 let hlEnabled = false;
 
@@ -3796,9 +4031,12 @@ function renderNotes() {
     const contentHtml = isMd
       ? `<div class="note-item-text md-rendered">${marked.parse(note.text)}</div>`
       : `<div class="note-item-text">${esc(note.text)}</div>`;
+    const anchorRef = note.anchorText
+      ? `<div class="note-anchor-ref" onclick="focusAnchor('${note.id}')" title="跳至文章標記處">🔗 「${esc(note.anchorText.slice(0, 30))}${note.anchorText.length > 30 ? '…' : ''}」</div>`
+      : '';
     return `<div class="note-item" data-note-id="${note.id}">
       <div class="note-item-meta">
-        <span class="note-item-date">${dateStr}</span>
+        <span class="note-item-date">${note.anchorText ? '📌 ' : ''}${dateStr}</span>
         <div style="display:flex;align-items:center;gap:4px">
           <button class="note-fmt-btn${isMd?' md-active':''}"
             onclick="toggleNoteFormat('${note.id}')"
@@ -3806,6 +4044,7 @@ function renderNotes() {
           <button class="note-item-del" onclick="deleteNote('${note.id}')" title="刪除筆記">✕</button>
         </div>
       </div>
+      ${anchorRef}
       ${contentHtml}
     </div>`;
   }).join('');
@@ -3836,6 +4075,9 @@ function addNote() {
 }
 
 function deleteNote(id) {
+  // Remove anchor span from article DOM if present
+  const span = document.querySelector(`.note-anchor[data-note-id="${id}"]`);
+  if (span) span.replaceWith(document.createTextNode(span.textContent));
   saveNotes(currentId, getNotes(currentId).filter(n => n.id !== id));
   renderNotes();
 }
@@ -3989,6 +4231,21 @@ document.addEventListener('keydown', function(e) {
   });
 })();
 </script>
+<!-- Anchor note editor popup -->
+<div id="anchor-editor">
+  <div class="anchor-editor-quote" id="anchor-editor-quote"></div>
+  <div class="note-fmt-row" style="margin-bottom:0">
+    <button class="note-fmt-pick active" id="afmt-txt" onclick="setAnchorFmt('txt')">TXT</button>
+    <button class="note-fmt-pick" id="afmt-md" onclick="setAnchorFmt('md')">MD</button>
+  </div>
+  <textarea class="anchor-editor-textarea" id="anchor-note-input" placeholder="為此段文字加上筆記…"></textarea>
+  <div class="anchor-editor-actions">
+    <button class="anchor-save-btn" onclick="saveAnchorNote()">儲存筆記</button>
+    <button class="anchor-cancel-btn" onclick="hideAnchorEditor()">取消</button>
+  </div>
+</div>
+<div id="anchor-tooltip"></div>
+
 <!-- Highlight floating toolbar -->
 <div id="hl-toolbar">
   <button class="hl-color-btn" style="background:#FFD600" title="黃色" onclick="hlApply('yellow')"></button>
@@ -3996,7 +4253,9 @@ document.addEventListener('keydown', function(e) {
   <button class="hl-color-btn" style="background:#FF4182" title="粉色" onclick="hlApply('pink')"></button>
   <button class="hl-color-btn" style="background:#3296FF" title="藍色" onclick="hlApply('blue')"></button>
   <div class="hl-sep"></div>
-  <button class="hl-erase-btn" onclick="hlHideToolbar()">✕ 關閉</button>
+  <button class="hl-erase-btn" onclick="startAnchorNote()" style="white-space:nowrap">📝 筆記</button>
+  <div class="hl-sep"></div>
+  <button class="hl-erase-btn" onclick="hlHideToolbar()">✕</button>
 </div>
 </body>
 </html>
