@@ -817,6 +817,9 @@ body.dark .dp-footer-btn:hover { background: #2e2c28; }
 
 body.reports-mode .articles-only { display: none !important; }
 body:not(.reports-mode) .reports-only { display: none !important; }
+body.links-mode .articles-only { display: none !important; }
+body.links-mode .reports-only  { display: none !important; }
+body:not(.links-mode) .links-only { display: none !important; }
 
 /* ── Rating Badge ──────────────────────────────────────── */
 .rating-badge { display:inline-block; padding:3px 10px; border-radius:4px; font-size:12px; font-weight:600; }
@@ -1133,6 +1136,90 @@ body.dark .article-content-display th,
 body.dark .report-content-display th { background: #252320; color: var(--text-main); }
 body.dark .article-content-display tr:hover td,
 body.dark .report-content-display tr:hover td { background: rgba(255,255,255,0.04); }
+
+/* ── Links view ──────────────────────────────────────────────── */
+#links-welcome {
+  display: none; flex: 1; flex-direction: column;
+  align-items: center; justify-content: center; gap: 8px;
+  overflow: hidden;
+}
+#links-view {
+  display: none; flex: 1; flex-direction: column;
+  overflow-y: auto; padding: 32px 40px 40px;
+}
+#links-folder-header {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 24px; flex-shrink: 0;
+}
+#links-folder-title { font-size: 15px; font-weight: 600; color: var(--text-main); }
+#link-form {
+  display: none; flex-direction: column; flex: 1;
+  overflow-y: auto; padding: 40px 48px 0;
+}
+#links-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+  gap: 12px;
+}
+.link-card {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 16px 8px 12px; border-radius: 12px; cursor: pointer;
+  position: relative; text-align: center; user-select: none;
+  transition: background 0.15s, box-shadow 0.15s;
+  border: 1px solid transparent;
+}
+.link-card:hover {
+  background: var(--sidebar-hover); border-color: var(--border);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+.link-card-icon {
+  width: 56px; height: 56px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  background: #f5f3ef; font-size: 28px; margin-bottom: 10px;
+  overflow: hidden; box-shadow: 0 1px 5px rgba(0,0,0,0.10);
+  flex-shrink: 0; transition: transform 0.12s;
+}
+.link-card:hover .link-card-icon { transform: scale(1.06); }
+body.dark .link-card-icon { background: #2a2720; }
+.link-card-icon img { width: 100%; height: 100%; object-fit: contain; border-radius: 14px; }
+.link-card-title {
+  font-size: 12px; font-weight: 500; color: var(--text-main);
+  line-height: 1.35; word-break: break-all; max-width: 100%;
+}
+.link-card-domain { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+.link-card-actions {
+  position: absolute; top: 4px; right: 4px; display: none; gap: 2px;
+}
+.link-card:hover .link-card-actions { display: flex; }
+.link-card-btn {
+  background: rgba(0,0,0,0.07); border: none; border-radius: 4px;
+  padding: 2px 5px; font-size: 11px; cursor: pointer; color: var(--text-muted);
+  transition: background 0.1s, color 0.1s; line-height: 1.4;
+}
+.link-card-btn:hover { background: rgba(0,0,0,0.15); color: var(--text-main); }
+body.dark .link-card-btn { background: rgba(255,255,255,0.10); color: var(--text-muted); }
+.link-card-btn.del:hover { background: rgba(220,50,50,0.14); color: #e05050; }
+.link-folder-tab {
+  display: block; width: 100%; text-align: left;
+  padding: 5px 10px; border-radius: 6px; font-size: 12px;
+  background: none; border: none; cursor: pointer;
+  color: var(--sidebar-text); transition: background 0.12s;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.link-folder-tab:hover { background: var(--sidebar-hover); }
+.link-folder-tab.active { background: var(--sidebar-active); color: var(--accent); font-weight: 500; }
+.link-folder-del-btn {
+  background: none; border: none; color: var(--text-faint);
+  cursor: pointer; font-size: 12px; padding: 0 4px; opacity: 0;
+  transition: opacity 0.1s, color 0.1s; flex-shrink: 0;
+}
+.link-folder-row:hover .link-folder-del-btn { opacity: 1; }
+.link-folder-del-btn:hover { color: var(--danger); }
+.link-folder-row { display: flex; align-items: center; }
+.link-folder-row .link-folder-tab { flex: 1; }
+.links-empty {
+  grid-column: 1/-1; text-align: center;
+  color: var(--text-faint); font-size: 13px; padding: 48px 0;
+}
 
 /* ── Highlighter toolbar ─────────────────────────────────────── */
 #hl-toolbar {
@@ -1487,7 +1574,8 @@ input:-webkit-autofill:focus {
 
   <div class="mode-switcher">
     <button class="mode-tab active" id="tab-articles" onclick="switchMode('articles')">📚 文章庫</button>
-    <button class="mode-tab" id="tab-reports" onclick="switchMode('reports')">🏢 公司報告</button>
+    <button class="mode-tab" id="tab-reports" onclick="switchMode('reports')">🏢 報告</button>
+    <button class="mode-tab" id="tab-links" onclick="switchMode('links')">🔗 連結庫</button>
   </div>
 
   <!-- ── 文章庫區塊 ── -->
@@ -1545,6 +1633,26 @@ input:-webkit-autofill:focus {
     <div id="report-list" style="flex:1;overflow-y:auto;padding:0 8px 16px;"></div>
   </div>
 
+  <!-- ── 連結庫側欄 ── -->
+  <div class="links-only" style="display:contents">
+    <div class="sidebar-search">
+      <div class="search-wrap">
+        <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="link-search-input" type="text" placeholder="搜尋連結、網域…" oninput="renderLinks()">
+      </div>
+    </div>
+    <div class="sidebar-actions">
+      <button class="btn-new" onclick="showLinkForm()">＋ 新增連結</button>
+      <button class="btn-new-folder" onclick="addLinkFolder()">＋ 資料夾</button>
+    </div>
+    <div class="folder-tabs" id="link-folder-tabs"></div>
+    <div class="sidebar-list-header">
+      <span id="link-list-label">所有連結</span>
+      <span class="count-chip" id="link-count-chip">0</span>
+    </div>
+    <div id="link-sidebar-list" style="flex:1;overflow-y:auto;padding:0 8px 16px;display:none"></div>
+  </div>
+
   <div class="sidebar-footer">
     <div class="articles-only footer-btn-grid">
       <button class="btn-footer-sm" onclick="exportJSON()" title="備份 JSON">↓ JSON</button>
@@ -1553,6 +1661,7 @@ input:-webkit-autofill:focus {
       <button class="btn-footer-sm" style="color:var(--accent-dim);border-color:var(--accent-dim)" onclick="openTagManager()" title="管理標籤">🏷 標籤</button>
     </div>
     <button class="btn-export reports-only" onclick="exportReportsCSV()">↓ 匯出報告 CSV</button>
+    <button class="btn-export links-only" onclick="exportLinksJSON()">↓ 備份連結</button>
   </div>
 </div>
 
@@ -1798,6 +1907,56 @@ input:-webkit-autofill:focus {
       <div class="form-actions">
         <button class="btn-save" onclick="saveReport()">儲存</button>
         <button class="btn-cancel" onclick="cancelReportForm()">取消</button>
+      </div>
+    </div>
+
+    <!-- ── 連結庫：歡迎 ── -->
+    <div id="links-welcome">
+      <div class="welcome-icon">🔗</div>
+      <div class="welcome-title">連結資料庫</div>
+      <div class="welcome-sub">儲存常用網站，一鍵快速開啟</div>
+      <button class="btn-new" style="margin-top:20px;padding:10px 24px;font-size:13px" onclick="showLinkForm()">＋ 新增第一個連結</button>
+    </div>
+
+    <!-- ── 連結庫：卡片格 ── -->
+    <div id="links-view">
+      <div id="links-folder-header">
+        <span id="links-folder-title">所有連結</span>
+        <span class="count-chip" id="links-count-chip">0</span>
+      </div>
+      <div id="links-grid"></div>
+    </div>
+
+    <!-- ── 連結庫：新增/編輯表單 ── -->
+    <div id="link-form">
+      <div class="form-title" id="link-form-heading">新增連結</div>
+      <div class="form-grid">
+        <div class="form-field" style="grid-column:1/-1">
+          <label class="form-label">網址 *</label>
+          <input id="lf-url" type="url" placeholder="https://" oninput="linkUrlChange(this.value)">
+        </div>
+        <div class="form-field" style="grid-column:1/-1">
+          <label class="form-label">名稱 *</label>
+          <input id="lf-title" type="text" placeholder="連結名稱">
+        </div>
+        <div class="form-field">
+          <label class="form-label">資料夾</label>
+          <input id="lf-folder" type="text" placeholder="未分類" list="link-folder-datalist">
+          <datalist id="link-folder-datalist"></datalist>
+        </div>
+        <div class="form-field">
+          <label class="form-label">圖示 Emoji（可選）</label>
+          <input id="lf-icon" type="text" placeholder="留空自動抓 favicon" maxlength="2" style="font-size:18px;text-align:center">
+        </div>
+        <div class="form-field" style="grid-column:1/-1">
+          <label class="form-label">備註</label>
+          <input id="lf-desc" type="text" placeholder="可選描述">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-save" onclick="saveLinkForm()">儲存</button>
+        <button class="btn-cancel" onclick="cancelLinkForm()">取消</button>
+        <button class="btn-delete" id="lf-delete-btn" style="display:none;margin-left:auto" onclick="deleteLink(editingLinkId)">刪除</button>
       </div>
     </div>
 
@@ -2516,17 +2675,39 @@ function selectSector(name) {
 
 function switchMode(mode) {
   const isReports = mode === 'reports';
+  const isLinks   = mode === 'links';
   document.body.classList.toggle('reports-mode', isReports);
-  document.getElementById('tab-articles').classList.toggle('active', !isReports);
-  document.getElementById('tab-reports').classList.toggle('active', isReports);
-  document.getElementById('brand-title').textContent = isReports ? '公司深度報告' : '文章資料庫';
-  document.getElementById('brand-sub').textContent   = isReports ? 'Company Research' : 'Article Archive';
+  document.body.classList.toggle('links-mode',   isLinks);
 
-  ['article-view','article-form','report-view','report-form'].forEach(id => {
-    document.getElementById(id).style.display = 'none';
+  ['tab-articles','tab-reports','tab-links'].forEach(id => {
+    document.getElementById(id)?.classList.remove('active');
+  });
+  document.getElementById('tab-' + mode)?.classList.add('active');
+
+  const brandMap = {
+    articles: ['文章資料庫', 'Article Archive'],
+    reports:  ['公司深度報告', 'Company Research'],
+    links:    ['連結資料庫', 'Link Database'],
+  };
+  const [bt, bs] = brandMap[mode] || brandMap.articles;
+  document.getElementById('brand-title').textContent = bt;
+  document.getElementById('brand-sub').textContent   = bs;
+
+  ['article-view','article-form','report-view','report-form',
+   'links-view','link-form','links-welcome','welcome-screen'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.style.display = 'none';
   });
 
-  if (isReports) {
+  if (isLinks) {
+    loadLinks();
+    renderLinkFolders();
+    currentLinkFolder = 'all';
+    renderLinks();
+    const titleEl = document.getElementById('links-folder-title');
+    if (titleEl) titleEl.textContent = '所有連結';
+    if (links.length) document.getElementById('links-view').style.display = 'flex';
+    else              document.getElementById('links-welcome').style.display = 'flex';
+  } else if (isReports) {
     currentId = null;
     renderReportList();
     if (reports.length) viewReport(reports[reports.length - 1].id);
@@ -3214,6 +3395,218 @@ ${imgsHtml}
 <script>window.onload = function(){ window.print(); }<\/script>
 </body></html>`);
   win.document.close();
+}
+
+// ── Link Database ────────────────────────────────────────────
+let links = [];
+let currentLinkFolder = 'all';
+let editingLinkId = null;
+
+function loadLinks() {
+  links = JSON.parse(localStorage.getItem('links_db') || '[]');
+}
+function saveLinks() {
+  localStorage.setItem('links_db', JSON.stringify(links));
+}
+function getLinkFolders() {
+  return [...new Set(links.map(l => l.folder).filter(Boolean))].sort();
+}
+
+function renderLinkFolders() {
+  const folders = getLinkFolders();
+  const container = document.getElementById('link-folder-tabs');
+  if (!container) return;
+  const allActive = currentLinkFolder === 'all';
+  let html = `<div class="link-folder-row">
+    <button class="link-folder-tab${allActive?' active':''}" onclick="filterLinkFolder('all')">📂 所有連結</button>
+  </div>`;
+  folders.forEach(f => {
+    const active = currentLinkFolder === f;
+    html += `<div class="link-folder-row">
+      <button class="link-folder-tab${active?' active':''}" onclick="filterLinkFolder('${escAttr(f)}')">${esc(f)}</button>
+      <button class="link-folder-del-btn" onclick="deleteLinkFolder('${escAttr(f)}')" title="刪除資料夾">✕</button>
+    </div>`;
+  });
+  container.innerHTML = html;
+  // update datalist for form
+  const dl = document.getElementById('link-folder-datalist');
+  if (dl) dl.innerHTML = folders.map(f => `<option value="${esc(f)}">`).join('');
+}
+
+function filterLinkFolder(folder) {
+  currentLinkFolder = folder;
+  renderLinkFolders();
+  renderLinks();
+  const titleEl = document.getElementById('links-folder-title');
+  if (titleEl) titleEl.textContent = folder === 'all' ? '所有連結' : folder;
+}
+
+function renderLinks() {
+  const q = (document.getElementById('link-search-input')?.value || '').toLowerCase();
+  const list = links.filter(l =>
+    (currentLinkFolder === 'all' || l.folder === currentLinkFolder) &&
+    (!q || l.title.toLowerCase().includes(q) || l.url.toLowerCase().includes(q) || (l.desc||'').toLowerCase().includes(q))
+  ).sort((a,b) => b.createdAt - a.createdAt);
+
+  const chip = document.getElementById('link-count-chip');
+  if (chip) chip.textContent = list.length;
+  const lChip = document.getElementById('link-count-chip');
+  if (lChip) lChip.textContent = list.length;
+
+  const grid = document.getElementById('links-grid');
+  if (!grid) return;
+  if (!list.length) {
+    grid.innerHTML = `<div class="links-empty">${q ? '找不到符合的連結' : '此資料夾尚無連結<br><button class="btn-new" style="margin-top:10px" onclick="showLinkForm()">＋ 新增連結</button>'}</div>`;
+    return;
+  }
+  grid.innerHTML = list.map(l => linkCardHtml(l)).join('');
+}
+
+function escAttr(s) { return (s||'').replace(/'/g,"&#39;").replace(/"/g,'&quot;'); }
+
+function linkCardHtml(l) {
+  const domain = (() => { try { return new URL(l.url).hostname; } catch { return ''; } })();
+  const faviconUrl = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64`;
+  const iconHtml = l.icon
+    ? `<span style="line-height:1">${esc(l.icon)}</span>`
+    : `<img src="${faviconUrl}" alt="" loading="lazy"
+         onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+       <span style="display:none;font-size:26px">🔗</span>`;
+  const safeUrl = escAttr(l.url);
+  return `<div class="link-card" title="${escAttr(l.title)}${l.desc?'\n'+escAttr(l.desc):''}">
+    <div class="link-card-actions">
+      <button class="link-card-btn" onclick="event.stopPropagation();showLinkForm(${l.id})" title="編輯">✎</button>
+      <button class="link-card-btn del" onclick="event.stopPropagation();deleteLink(${l.id})" title="刪除">✕</button>
+    </div>
+    <div class="link-card-icon" onclick="openLink('${safeUrl}')">${iconHtml}</div>
+    <div class="link-card-title" onclick="openLink('${safeUrl}')">${esc(l.title)}</div>
+    <div class="link-card-domain">${esc(domain.replace('www.',''))}</div>
+  </div>`;
+}
+
+function openLink(url) {
+  try { window.open(url, '_blank', 'noopener,noreferrer'); } catch(e) {}
+}
+
+function showLinkForm(id) {
+  ['article-view','article-form','report-view','report-form','links-view','links-welcome']
+    .forEach(x => { const el=document.getElementById(x); if(el) el.style.display='none'; });
+  const form = document.getElementById('link-form');
+  form.style.display = 'flex';
+  editingLinkId = id || null;
+  document.getElementById('link-form-heading').textContent = id ? '編輯連結' : '新增連結';
+  document.getElementById('lf-delete-btn').style.display = id ? '' : 'none';
+  if (id) {
+    const l = links.find(x => x.id === id);
+    if (!l) return;
+    document.getElementById('lf-url').value   = l.url;
+    document.getElementById('lf-title').value = l.title;
+    document.getElementById('lf-folder').value = l.folder || '';
+    document.getElementById('lf-icon').value   = l.icon || '';
+    document.getElementById('lf-desc').value   = l.desc || '';
+  } else {
+    ['lf-url','lf-title','lf-folder','lf-icon','lf-desc'].forEach(id => { document.getElementById(id).value = ''; });
+    document.getElementById('lf-folder').value = currentLinkFolder === 'all' ? '' : currentLinkFolder;
+  }
+  // populate datalist
+  const dl = document.getElementById('link-folder-datalist');
+  if (dl) dl.innerHTML = getLinkFolders().map(f=>`<option value="${esc(f)}">`).join('');
+  setTimeout(() => document.getElementById('lf-url')?.focus(), 80);
+}
+
+function cancelLinkForm() {
+  document.getElementById('link-form').style.display = 'none';
+  const hasLinks = links.filter(l => currentLinkFolder==='all' || l.folder===currentLinkFolder).length > 0;
+  if (hasLinks || links.length) {
+    document.getElementById('links-view').style.display = 'flex';
+  } else {
+    document.getElementById('links-welcome').style.display = 'flex';
+  }
+}
+
+function saveLinkForm() {
+  const url   = document.getElementById('lf-url').value.trim();
+  const title = document.getElementById('lf-title').value.trim();
+  if (!url)   { toast('請輸入網址'); document.getElementById('lf-url').focus(); return; }
+  if (!title) { toast('請輸入名稱'); document.getElementById('lf-title').focus(); return; }
+  let finalUrl = url;
+  if (!/^https?:\/\//i.test(finalUrl)) finalUrl = 'https://' + finalUrl;
+  const folder = document.getElementById('lf-folder').value.trim();
+  const icon   = document.getElementById('lf-icon').value.trim();
+  const desc   = document.getElementById('lf-desc').value.trim();
+  if (editingLinkId) {
+    const idx = links.findIndex(l => l.id === editingLinkId);
+    if (idx !== -1) Object.assign(links[idx], { url: finalUrl, title, folder, icon, desc });
+  } else {
+    links.unshift({ id: Date.now(), title, url: finalUrl, desc, folder, icon, createdAt: Date.now() });
+  }
+  saveLinks();
+  renderLinkFolders();
+  renderLinks();
+  document.getElementById('link-form').style.display = 'none';
+  document.getElementById('links-view').style.display = 'flex';
+  toast(editingLinkId ? '✓ 已更新連結' : '✓ 連結已新增');
+  editingLinkId = null;
+}
+
+function deleteLink(id) {
+  if (!confirm('確定刪除此連結？')) return;
+  links = links.filter(l => l.id !== id);
+  saveLinks();
+  document.getElementById('link-form').style.display = 'none';
+  editingLinkId = null;
+  renderLinkFolders();
+  renderLinks();
+  if (!links.length) {
+    document.getElementById('links-view').style.display = 'none';
+    document.getElementById('links-welcome').style.display = 'flex';
+  } else {
+    document.getElementById('links-view').style.display = 'flex';
+  }
+  toast('連結已刪除');
+}
+
+function addLinkFolder() {
+  const name = prompt('輸入資料夾名稱：');
+  if (!name?.trim()) return;
+  // Just show it — folders are derived from links
+  currentLinkFolder = name.trim();
+  renderLinkFolders();
+  filterLinkFolder(name.trim());
+  showLinkForm(); // open form with folder pre-filled
+}
+
+function deleteLinkFolder(folder) {
+  const count = links.filter(l => l.folder === folder).length;
+  const msg = count ? `「${folder}」資料夾有 ${count} 個連結，刪除後連結移至未分類。確定？` : `刪除資料夾「${folder}」？`;
+  if (!confirm(msg)) return;
+  links.forEach(l => { if (l.folder === folder) l.folder = ''; });
+  saveLinks();
+  if (currentLinkFolder === folder) currentLinkFolder = 'all';
+  renderLinkFolders();
+  renderLinks();
+  toast(`資料夾「${folder}」已刪除`);
+}
+
+function linkUrlChange(url) {
+  const titleEl = document.getElementById('lf-title');
+  if (titleEl && !titleEl.value && url) {
+    try {
+      const host = new URL(url.startsWith('http') ? url : 'https://'+url).hostname.replace(/^www\./, '');
+      const parts = host.split('.');
+      const name = parts[0];
+      titleEl.value = name.charAt(0).toUpperCase() + name.slice(1);
+    } catch {}
+  }
+}
+
+function exportLinksJSON() {
+  const data = JSON.stringify(links, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `links_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(url);
 }
 
 // ── Highlighter ──────────────────────────────────────────────
