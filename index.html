@@ -4176,7 +4176,7 @@ function renderNotes() {
           ${imgGrid ? `<div class="note-img-grid" style="opacity:.6">${imgs.map((src,i)=>`<img class="note-img-thumb" src="${src}" alt="" onclick="openNoteImg(${JSON.stringify(imgs)},${i})">`).join('')}</div>` : ''}
           <textarea class="note-edit-textarea" id="edit-ta-${note.id}">${esc(note.text)}</textarea>
           <div style="display:flex;gap:5px;align-items:center">
-            <button class="note-img-upload-btn" onclick="document.getElementById('note-edit-img-file').click()">📷</button>
+            <button class="note-img-upload-btn" onclick="document.getElementById('note-edit-img-file').click()">圖片</button>
             <input type="file" id="note-edit-img-file" accept="image/*" multiple style="display:none" onchange="onEditImgSelect(this)">
             <div class="note-edit-actions" style="flex:1">
               <button class="note-edit-save" onclick="saveNoteEdit('${note.id}')">✓ 儲存</button>
@@ -4493,7 +4493,7 @@ document.addEventListener('keydown', function(e) {
       <div class="note-input-imgs" id="note-input-imgs" style="display:none"></div>
       <textarea class="notes-textarea" id="note-input" placeholder="寫下你的想法、摘錄重點...&#10;Ctrl+Enter 儲存" style="flex:1;height:auto"></textarea>
       <div style="display:flex;gap:6px;margin-top:6px">
-        <button class="note-img-upload-btn" onclick="document.getElementById('note-img-file').click()">📷 圖片</button>
+        <button class="note-img-upload-btn" onclick="document.getElementById('note-img-file').click()">圖片</button>
         <button class="notes-add-btn" style="flex:1;margin-top:0" onclick="addNote()">+ 新增筆記</button>
       </div>
       <input type="file" id="note-img-file" accept="image/*" multiple style="display:none" onchange="onNoteImgSelect(this)">
