@@ -1273,8 +1273,8 @@ body.dark .btn-hl-active { background: rgba(255,214,0,0.15) !important; color: #
 #notes-panel {
   position: fixed;
   top: 110px; right: 40px;
-  width: 320px; min-width: 240px;
-  height: 500px; min-height: 180px;
+  width: 680px; min-width: 360px;
+  height: 320px; min-height: 180px;
   background: var(--bg-darker);
   border: 1px solid var(--border-dark);
   border-radius: 14px;
@@ -1282,6 +1282,9 @@ body.dark .btn-hl-active { background: rgba(255,214,0,0.15) !important; color: #
   display: none; flex-direction: column;
   z-index: 400; overflow: hidden;
   resize: both;
+}
+.notes-panel-body {
+  display: flex; flex: 1; overflow: hidden;
 }
 #notes-panel.open { display: flex; }
 .notes-panel-header {
@@ -1299,7 +1302,8 @@ body.dark .btn-hl-active { background: rgba(255,214,0,0.15) !important; color: #
 }
 .notes-panel-close:hover { background: rgba(220,50,50,0.12); color: var(--danger); }
 .notes-input-wrap {
-  padding: 12px 14px; border-bottom: 1px solid var(--border-dark); flex-shrink: 0;
+  padding: 12px 14px; border-right: 1px solid var(--border-dark);
+  width: 250px; flex-shrink: 0; overflow-y: auto; display: flex; flex-direction: column;
 }
 .notes-textarea {
   width: 100%; font-size: 13px; line-height: 1.65; color: var(--text-main);
@@ -4480,20 +4484,22 @@ document.addEventListener('keydown', function(e) {
     <span class="notes-panel-title">📝 筆記</span>
     <button class="notes-panel-close" onclick="toggleNotes()" title="關閉">×</button>
   </div>
-  <div class="notes-input-wrap">
-    <div class="note-fmt-row">
-      <button class="note-fmt-pick active" id="fmt-txt" onclick="setNoteFormat('txt')">TXT</button>
-      <button class="note-fmt-pick" id="fmt-md" onclick="setNoteFormat('md')">MD</button>
+  <div class="notes-panel-body">
+    <div class="notes-input-wrap">
+      <div class="note-fmt-row">
+        <button class="note-fmt-pick active" id="fmt-txt" onclick="setNoteFormat('txt')">TXT</button>
+        <button class="note-fmt-pick" id="fmt-md" onclick="setNoteFormat('md')">MD</button>
+      </div>
+      <div class="note-input-imgs" id="note-input-imgs" style="display:none"></div>
+      <textarea class="notes-textarea" id="note-input" placeholder="寫下你的想法、摘錄重點...&#10;Ctrl+Enter 儲存" style="flex:1;height:auto"></textarea>
+      <div style="display:flex;gap:6px;margin-top:6px">
+        <button class="note-img-upload-btn" onclick="document.getElementById('note-img-file').click()">📷 圖片</button>
+        <button class="notes-add-btn" style="flex:1;margin-top:0" onclick="addNote()">+ 新增筆記</button>
+      </div>
+      <input type="file" id="note-img-file" accept="image/*" multiple style="display:none" onchange="onNoteImgSelect(this)">
     </div>
-    <div class="note-input-imgs" id="note-input-imgs" style="display:none"></div>
-    <textarea class="notes-textarea" id="note-input" placeholder="寫下你的想法、摘錄重點...&#10;Ctrl+Enter 儲存"></textarea>
-    <div style="display:flex;gap:6px;margin-top:6px">
-      <button class="note-img-upload-btn" onclick="document.getElementById('note-img-file').click()">📷 圖片</button>
-      <button class="notes-add-btn" style="flex:1;margin-top:0" onclick="addNote()">+ 新增筆記</button>
-    </div>
-    <input type="file" id="note-img-file" accept="image/*" multiple style="display:none" onchange="onNoteImgSelect(this)">
+    <div class="notes-list" id="notes-list"></div>
   </div>
-  <div class="notes-list" id="notes-list"></div>
 </div>
 
 <!-- Anchor note editor popup -->
