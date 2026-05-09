@@ -2315,6 +2315,9 @@ let currentId = null;
 let editingId = null;
 let currentFolder = '';   // '' = 所有文章, '__uncat__' = 未分類
 let uploadedImages = [];  // base64[] for current article form
+let _batchMode = false, _batchSel = new Set();
+let _fontSize = parseInt(localStorage.getItem('article_fs') || '15');
+document.documentElement.style.setProperty('--content-fs', _fontSize + 'px');
 
 // ── Image helpers ─────────────────────────────────────────────
 // 把每張圖片用 Canvas 縮到 maxW 寬度並輸出為 JPEG/PNG dataURL
@@ -4654,8 +4657,6 @@ function buildTOC() {
 }
 
 // ── 3. Font size A− / A+ ──────────────────────────────────────
-let _fontSize = parseInt(localStorage.getItem('article_fs') || '15');
-document.documentElement.style.setProperty('--content-fs', _fontSize + 'px');
 function changeFontSize(d) {
   _fontSize = Math.min(22, Math.max(12, _fontSize + d));
   document.documentElement.style.setProperty('--content-fs', _fontSize + 'px');
@@ -4736,7 +4737,6 @@ document.addEventListener('keydown', e => {
 });
 
 // ── 7. Batch operations ────────────────────────────────────────
-let _batchMode = false, _batchSel = new Set();
 function toggleBatchMode() {
   _batchMode = !_batchMode;
   _batchSel.clear();
