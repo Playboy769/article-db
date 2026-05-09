@@ -2868,14 +2868,15 @@ function switchMode(mode) {
   });
 
   if (isLinks) {
-    loadLinks();
-    renderLinkFolders();
+    loadLinks().then(() => {
+      renderLinkFolders();
+      renderLinks();
+      if (links.length) document.getElementById('links-view').style.display = 'flex';
+      else              document.getElementById('links-welcome').style.display = 'flex';
+    });
     currentLinkFolder = 'all';
-    renderLinks();
     const titleEl = document.getElementById('links-folder-title');
     if (titleEl) titleEl.textContent = '所有連結';
-    if (links.length) document.getElementById('links-view').style.display = 'flex';
-    else              document.getElementById('links-welcome').style.display = 'flex';
   } else if (isReports) {
     currentId = null;
     renderReportList();
@@ -3572,11 +3573,32 @@ let links = [];
 let currentLinkFolder = 'all';
 let editingLinkId = null;
 
-function loadLinks() {
-  links = JSON.parse(localStorage.getItem('links_db') || '[]');
-}
-function saveLinks() {
-  localStorage.setItem('links_db', JSON.stringify(links));
+async function loadLinks() {
+  try {
+    const data = await fetch(`${API_BASE}/links?limit=500`).then(r => r.json());
+    links = data.map(l => ({
+      id: l.id, title: l.title, url: l.url,
+      desc: l.desc || '', folder: l.folder || '',
+      icon: l.icon || '', createdAt: l.created_at
+    }));
+    // One-time migration: if API is empty but localStorage has data, upload it
+    const local = JSON.parse(localStorage.getItem('links_db') || '[]');
+    if (!links.length && local.length) {
+      toast('正在將連結資料同步至雲端…');
+      for (const lk of local.slice().reverse()) {
+        try {
+          await _apiPost('/links', { title: lk.title, url: lk.url, desc: lk.desc||'', folder: lk.folder||'', icon: lk.icon||'' });
+        } catch(e) {}
+      }
+      localStorage.removeItem('links_db');
+      const data2 = await fetch(`${API_BASE}/links?limit=500`).then(r => r.json());
+      links = data2.map(l => ({ id: l.id, title: l.title, url: l.url, desc: l.desc||'', folder: l.folder||'', icon: l.icon||'', createdAt: l.created_at }));
+      toast('✓ 連結資料已同步至雲端');
+    }
+  } catch(e) {
+    // fallback to localStorage if API unavailable
+    links = JSON.parse(localStorage.getItem('links_db') || '[]');
+  }
 }
 function getLinkFolders() {
   return [...new Set(links.map(l => l.folder).filter(Boolean))].sort();
@@ -3699,7 +3721,7 @@ function cancelLinkForm() {
   }
 }
 
-function saveLinkForm() {
+async function saveLinkForm() {
   const url   = document.getElementById('lf-url').value.trim();
   const title = document.getElementById('lf-title').value.trim();
   if (!url)   { toast('請輸入網址'); document.getElementById('lf-url').focus(); return; }
@@ -3709,13 +3731,17 @@ function saveLinkForm() {
   const folder = document.getElementById('lf-folder').value.trim();
   const icon   = document.getElementById('lf-icon').value.trim();
   const desc   = document.getElementById('lf-desc').value.trim();
-  if (editingLinkId) {
-    const idx = links.findIndex(l => l.id === editingLinkId);
-    if (idx !== -1) Object.assign(links[idx], { url: finalUrl, title, folder, icon, desc });
-  } else {
-    links.unshift({ id: Date.now(), title, url: finalUrl, desc, folder, icon, createdAt: Date.now() });
-  }
-  saveLinks();
+  const body = { title, url: finalUrl, desc, folder, icon };
+  try {
+    if (editingLinkId) {
+      const res = await _apiPatch(`/links/${editingLinkId}`, body);
+      const idx = links.findIndex(l => l.id === editingLinkId);
+      if (idx !== -1) links[idx] = { id: res.id, title: res.title, url: res.url, desc: res.desc||'', folder: res.folder||'', icon: res.icon||'', createdAt: res.created_at };
+    } else {
+      const res = await _apiPost('/links', body);
+      links.unshift({ id: res.id, title: res.title, url: res.url, desc: res.desc||'', folder: res.folder||'', icon: res.icon||'', createdAt: res.created_at });
+    }
+  } catch(e) { toast('儲存失敗，請稍後再試'); return; }
   renderLinkFolders();
   renderLinks();
   document.getElementById('link-form').style.display = 'none';
@@ -3724,10 +3750,10 @@ function saveLinkForm() {
   editingLinkId = null;
 }
 
-function deleteLink(id) {
+async function deleteLink(id) {
   if (!confirm('確定刪除此連結？')) return;
+  try { await _apiDelete(`/links/${id}`); } catch(e) { toast('刪除失敗，請稍後再試'); return; }
   links = links.filter(l => l.id !== id);
-  saveLinks();
   document.getElementById('link-form').style.display = 'none';
   editingLinkId = null;
   renderLinkFolders();
@@ -3751,12 +3777,16 @@ function addLinkFolder() {
   showLinkForm(); // open form with folder pre-filled
 }
 
-function deleteLinkFolder(folder) {
+async function deleteLinkFolder(folder) {
   const count = links.filter(l => l.folder === folder).length;
   const msg = count ? `「${folder}」資料夾有 ${count} 個連結，刪除後連結移至未分類。確定？` : `刪除資料夾「${folder}」？`;
   if (!confirm(msg)) return;
+  // Update all links in this folder to empty folder via API
+  const affected = links.filter(l => l.folder === folder);
+  try {
+    await Promise.all(affected.map(l => _apiPatch(`/links/${l.id}`, { folder: '' })));
+  } catch(e) { toast('操作失敗，請稍後再試'); return; }
   links.forEach(l => { if (l.folder === folder) l.folder = ''; });
-  saveLinks();
   if (currentLinkFolder === folder) currentLinkFolder = 'all';
   renderLinkFolders();
   renderLinks();
