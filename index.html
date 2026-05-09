@@ -254,6 +254,7 @@ body.v-resizing * { cursor: ns-resize !important; user-select: none !important; 
   transition: background 0.12s;
   margin-bottom: 1px;
   border: 1px solid transparent;
+  display: flex; align-items: flex-start;
 }
 .list-item:hover { background: var(--sidebar-hover); }
 .list-item.active {
@@ -1486,6 +1487,97 @@ body.dark .notes-panel-header { background: #1e1c1a; }
 body.dark .notes-textarea { background: #252320; border-color: #3a3630; }
 body.dark .note-item { background: #252320; border-color: #3a3630; }
 
+/* ── TOC panel ───────────────────────────────────────────────── */
+#toc-panel {
+  position: fixed; right: 20px; top: 120px;
+  width: 178px; max-height: 68vh; overflow-y: auto;
+  background: var(--bg-darker); border: 1px solid var(--border-dark);
+  border-radius: 10px; padding: 10px 12px; font-size: 11px;
+  display: none; flex-direction: column; gap: 2px; z-index: 200;
+  box-shadow: var(--shadow);
+}
+#toc-panel.visible { display: flex; }
+.toc-heading { font-size: 10px; font-weight: 700; color: var(--text-faint);
+  text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+.toc-item { color: var(--text-muted); cursor: pointer; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; padding: 2px 4px; border-radius: 3px; line-height: 1.4; }
+.toc-item:hover, .toc-item.active { color: var(--accent); background: rgba(200,169,110,.08); }
+.toc-item.h2 { padding-left: 10px; }
+.toc-item.h3 { padding-left: 20px; font-size: 10.5px; }
+.toc-item.h4 { padding-left: 28px; font-size: 10px; }
+body.dark #toc-panel { background: #1e1c1a; border-color: #3a3630; }
+
+/* ── Reading fullscreen ──────────────────────────────────────── */
+body.reading-fullscreen #sidebar { display: none !important; }
+body.reading-fullscreen #sidebar-resizer { display: none !important; }
+body.reading-fullscreen #main { margin-left: 0 !important; }
+#btn-fullscreen.active { color: var(--accent) !important; }
+
+/* ── Font size CSS var ───────────────────────────────────────── */
+:root { --content-fs: 15px; }
+.article-content-display { font-size: var(--content-fs); }
+
+/* ── Batch bar ───────────────────────────────────────────────── */
+#batch-bar { display: none; gap: 6px; padding: 6px 12px;
+  background: var(--bg-light); border-bottom: 1px solid var(--border-dark);
+  align-items: center; flex-wrap: wrap; flex-shrink: 0; }
+#batch-bar .sidebar-action-btn { font-size: 11px; padding: 3px 8px; }
+.btn-batch-active { background: rgba(200,169,110,.15) !important; color: var(--accent) !important; }
+
+/* ── Sidebar bottom buttons ──────────────────────────────────── */
+.sidebar-bottom-btns { display: flex; gap: 6px; padding: 7px 12px;
+  border-top: 1px solid var(--border-dark); flex-shrink: 0; }
+.sidebar-bottom-btns .btn-footer-sm { flex: 1; text-align: center; }
+
+/* ── Fetch URL button ────────────────────────────────────────── */
+.btn-fetch-url { background: none; border: 1px solid var(--border); border-radius: 6px;
+  padding: 4px 10px; font-size: 12px; color: var(--text-muted); cursor: pointer;
+  transition: border-color .15s, color .15s; }
+.btn-fetch-url:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Stats panel ─────────────────────────────────────────────── */
+#stats-panel { position: fixed; top:0; left:0; right:0; bottom:0;
+  background: rgba(0,0,0,.5); z-index: 650; display: none;
+  align-items: center; justify-content: center; }
+#stats-panel.open { display: flex; }
+.stats-inner { background: var(--bg-darker); border-radius: 16px; padding: 28px 32px;
+  width: 500px; max-width: 90vw; max-height: 85vh; overflow-y: auto; position: relative; }
+body.dark .stats-inner { background: #1e1c1a; }
+
+/* ── Notes search panel ──────────────────────────────────────── */
+#notes-search-panel { position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+  width: 440px; max-height: 70vh; background: var(--bg-darker);
+  border: 1px solid var(--border-dark); border-radius: 14px;
+  box-shadow: 0 12px 48px rgba(0,0,0,.18); z-index: 700;
+  display: none; flex-direction: column; overflow: hidden; }
+#notes-search-panel.open { display: flex; }
+body.dark #notes-search-panel { background: #1e1c1a; border-color: #3a3630; }
+.nsp-header { display: flex; align-items: center; gap: 8px;
+  padding: 12px 14px; border-bottom: 1px solid var(--border-dark); }
+#notes-search-q { flex: 1; border: none; outline: none; background: transparent;
+  font-size: 13px; color: var(--text-main); }
+.nsp-results { flex: 1; overflow-y: auto; padding: 6px 0; }
+.nsp-item { padding: 9px 14px; cursor: pointer; border-bottom: 1px solid var(--border); }
+.nsp-item:hover { background: var(--bg-light); }
+.nsp-item-title { font-size: 12px; font-weight: 600; color: var(--text-main); margin-bottom: 3px; }
+.nsp-item-text { font-size: 11px; color: var(--text-muted); }
+
+/* ── Fetch URL dialog ────────────────────────────────────────── */
+#fetch-url-dialog { position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,.5); z-index: 700; display: none;
+  align-items: center; justify-content: center; }
+#fetch-url-dialog.open { display: flex; }
+.fud-inner { background: var(--bg-darker); border-radius: 14px; padding: 22px 24px;
+  width: 400px; max-width: 90vw; }
+body.dark .fud-inner { background: #1e1c1a; }
+#fetch-url-input { width: 100%; box-sizing: border-box; padding: 8px 10px;
+  border: 1px solid var(--border); border-radius: 6px; font-size: 13px;
+  outline: none; background: var(--bg-light); color: var(--text-main); margin-bottom: 10px; }
+#fetch-url-input:focus { border-color: var(--accent); }
+
+/* ── Word count bar tweak ────────────────────────────────────── */
+.word-count-bar { font-size: 12px; }
+
 /* ── Dark toggle btn ────────────────────────────────────────── */
 .btn-dark-toggle {
   background: none; border: none; font-size: 15px; cursor: pointer;
@@ -1756,6 +1848,14 @@ input:-webkit-autofill:focus {
     <div class="sidebar-actions">
       <button class="btn-new" onclick="showForm()">＋ 新增文章</button>
       <button class="btn-new-folder" onclick="addFolder()">＋ 新增資料夾</button>
+      <button class="btn-new-folder" id="btn-batch" onclick="toggleBatchMode()" title="批次操作" style="padding:4px 8px">☑</button>
+    </div>
+    <div id="batch-bar">
+      <span id="batch-count" style="font-size:12px;color:var(--text-muted);flex-shrink:0">已選 0 篇</span>
+      <button class="sidebar-action-btn" onclick="batchMove()" style="font-size:11px">移動</button>
+      <button class="sidebar-action-btn" onclick="batchAddTag()" style="font-size:11px">加標籤</button>
+      <button class="sidebar-action-btn" onclick="batchDelete()" style="font-size:11px;color:var(--danger)">刪除</button>
+      <button onclick="toggleBatchMode()" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:12px">取消</button>
     </div>
     <div class="folder-tabs" id="folder-tabs"></div>
     <div class="sort-wrap">
@@ -1812,6 +1912,10 @@ input:-webkit-autofill:focus {
   </div>
 
   <div class="sidebar-footer">
+    <div class="articles-only sidebar-bottom-btns">
+      <button class="btn-footer-sm" onclick="openNotesSearch()" title="搜尋所有筆記">🔍 筆記搜尋</button>
+      <button class="btn-footer-sm" onclick="openStats()" title="統計總覽">📊 統計</button>
+    </div>
     <div class="articles-only footer-btn-grid">
       <button class="btn-footer-sm" onclick="exportJSON()" title="備份 JSON">↓ JSON</button>
       <button class="btn-footer-sm" onclick="importJSON()" title="還原 JSON">↑ 還原</button>
@@ -1843,7 +1947,12 @@ input:-webkit-autofill:focus {
         <button class="btn-duplicate" onclick="duplicateArticle(currentId)">⎘ 複製</button>
         <button class="btn-edit" id="btn-highlight" onclick="toggleHighlighter()" title="螢光筆標記選取文字">🖊 螢光筆</button>
         <button class="btn-edit" id="btn-notes" onclick="toggleNotes()" title="筆記">📝 <span id="notes-badge"></span>筆記</button>
-        <button class="btn-edit" onclick="printArticle()" title="列印 / 匯出 PDF" style="margin-left:auto">⎙ 列印</button>
+        <div style="display:flex;gap:2px;margin-left:4px;flex-shrink:0">
+          <button class="btn-edit" onclick="changeFontSize(-1)" title="縮小字體" style="padding:4px 8px;font-weight:600">A−</button>
+          <button class="btn-edit" onclick="changeFontSize(1)"  title="放大字體" style="padding:4px 8px;font-weight:600">A+</button>
+        </div>
+        <button class="btn-edit" id="btn-fullscreen" onclick="toggleFullscreen()" title="全螢幕閱讀（ESC 退出）" style="margin-left:auto">⤢</button>
+        <button class="btn-edit" onclick="printArticle()" title="列印 / 匯出 PDF">⎙ 列印</button>
       </div>
       <div class="word-count-bar" id="word-count-bar"></div>
       <div class="article-meta-bar">
@@ -1876,7 +1985,10 @@ input:-webkit-autofill:focus {
     </div>
 
     <div id="article-form">
-      <div class="form-title" id="form-heading">新增文章</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div class="form-title" id="form-heading" style="margin-bottom:0">新增文章</div>
+        <button type="button" class="btn-fetch-url" onclick="showFetchUrlDialog()">🔗 從 URL 抓取</button>
+      </div>
       
       <div class="form-grid">
         <div class="form-field">
@@ -2533,16 +2645,19 @@ function renderList() {
   }
 
   list.innerHTML = toRender.map(a => `
-    <div class="list-item ${a.id === currentId ? 'active' : ''}" onclick="viewArticle(${a.id})">
-      <div class="li-title">
-        ${a.starred ? '<span class="li-star">★</span> ' : ''}${esc(a.title)}
+    <div class="list-item ${a.id === currentId ? 'active' : ''}" onclick="${_batchMode ? `toggleBatchSel(${a.id})` : `viewArticle(${a.id})`}" style="${_batchMode ? 'cursor:default' : ''}">
+      ${_batchMode ? `<input type="checkbox" class="batch-cb" data-id="${a.id}" ${_batchSel.has(a.id)?'checked':''} onclick="event.stopPropagation();toggleBatchSel(${a.id})" style="margin-right:7px;flex-shrink:0;accent-color:var(--accent)">` : ''}
+      <div style="flex:1;min-width:0">
+        <div class="li-title">
+          ${a.starred ? '<span class="li-star">★</span> ' : ''}${esc(a.title)}
+        </div>
+        <div class="li-meta">
+          ${a.folder ? `<span class="folder-tag">${esc(a.folder)}</span>` : ''}
+          <span>${esc(a.author || '未知作者')}</span>
+          <span>${a.date || ''}</span>
+        </div>
+        ${(a.tags||[]).length ? `<div class="li-meta" style="margin-top:3px;">${a.tags.map(t=>`<span class="li-kw-chip" onclick="event.stopPropagation();filterByTag('${esc(t)}')" style="cursor:pointer">${esc(t)}</span>`).join('')}</div>` : ''}
       </div>
-      <div class="li-meta">
-        ${a.folder ? `<span class="folder-tag">${esc(a.folder)}</span>` : ''}
-        <span>${esc(a.author || '未知作者')}</span>
-        <span>${a.date || ''}</span>
-      </div>
-      ${(a.tags||[]).length ? `<div class="li-meta" style="margin-top:3px;">${a.tags.map(t=>`<span class="li-kw-chip" onclick="event.stopPropagation();filterByTag('${esc(t)}')" style="cursor:pointer">${esc(t)}</span>`).join('')}</div>` : ''}
     </div>
   `).join('');
 }
@@ -2570,7 +2685,7 @@ function viewArticle(id) {
 
   const chars = (a.content || '').replace(/\s/g, '').length;
   const wcEl  = document.getElementById('word-count-bar');
-  if (wcEl) wcEl.textContent = chars > 0 ? `${chars.toLocaleString()} 字 · 約 ${Math.ceil(chars / 300)} 分鐘閱讀` : '';
+  if (wcEl) wcEl.textContent = chars > 0 ? `⏱ ${chars.toLocaleString()} 字 · 約 ${Math.ceil(chars / 300)} 分鐘閱讀` : '';
 
   addToRecent(id);
 
@@ -2595,9 +2710,11 @@ function viewArticle(id) {
   applyLatex(document.getElementById('view-content'));
   applyStoredHighlights(id);
   applyAnchorNotes(id);
+  buildTOC();
 
   // Close notes panel when switching articles, update badge
   document.getElementById('notes-panel')?.classList.remove('open');
+  document.getElementById('toc-panel')?.classList.remove('visible');
   renderNotes();
 
   renderViewGallery('view-image-gallery', getImages(a));
@@ -4507,12 +4624,267 @@ document.addEventListener('keydown', function(e) {
     }
   });
 })();
+
+// ── 1. TOC ────────────────────────────────────────────────────
+function buildTOC() {
+  const content = document.getElementById('view-content');
+  const panel   = document.getElementById('toc-panel');
+  const list    = document.getElementById('toc-list');
+  if (!content || !panel) return;
+  const headings = [...content.querySelectorAll('h1,h2,h3,h4')];
+  if (headings.length < 2) { panel.classList.remove('visible'); return; }
+  list.innerHTML = '';
+  headings.forEach((h, i) => {
+    if (!h.id) h.id = 'toc-' + i;
+    const div = document.createElement('div');
+    div.className = 'toc-item ' + h.tagName.toLowerCase();
+    div.textContent = h.textContent.trim();
+    div.onclick = () => {
+      const scrollBody = document.querySelector('#article-view .article-scroll-body');
+      if (scrollBody) {
+        const top = h.offsetTop - scrollBody.offsetTop;
+        scrollBody.scrollTo({ top, behavior: 'smooth' });
+      } else {
+        h.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    };
+    list.appendChild(div);
+  });
+  panel.classList.add('visible');
+}
+
+// ── 3. Font size A− / A+ ──────────────────────────────────────
+let _fontSize = parseInt(localStorage.getItem('article_fs') || '15');
+document.documentElement.style.setProperty('--content-fs', _fontSize + 'px');
+function changeFontSize(d) {
+  _fontSize = Math.min(22, Math.max(12, _fontSize + d));
+  document.documentElement.style.setProperty('--content-fs', _fontSize + 'px');
+  localStorage.setItem('article_fs', _fontSize);
+}
+
+// ── 4. Fullscreen reading ──────────────────────────────────────
+function toggleFullscreen() {
+  const on = document.body.classList.toggle('reading-fullscreen');
+  document.getElementById('btn-fullscreen')?.classList.toggle('active', on);
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.body.classList.contains('reading-fullscreen')) {
+    document.body.classList.remove('reading-fullscreen');
+    document.getElementById('btn-fullscreen')?.classList.remove('active');
+  }
+});
+
+// ── 5. Export notes + highlights ──────────────────────────────
+function exportNotes() {
+  const a = articles.find(x => x.id === currentId);
+  if (!a) return;
+  const hls   = getHls(currentId);
+  const notes = getNotes(currentId);
+  if (!hls.length && !notes.length) { toast('此文章尚無筆記或標記'); return; }
+  let md = `# ${a.title}\n\n`;
+  if (hls.length) {
+    md += `## 🖊 螢光筆標記\n`;
+    hls.forEach(h => { md += `- 「${h.text}」\n`; });
+    md += '\n';
+  }
+  if (notes.length) {
+    md += `## 📝 筆記\n\n`;
+    notes.forEach(n => {
+      const d  = new Date(n.createdAt);
+      const ds = `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+      if (n.anchorText) md += `> 🔗 錨點：「${n.anchorText}」\n`;
+      md += `**[${ds}]**\n${n.text}\n\n`;
+    });
+  }
+  const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const el   = Object.assign(document.createElement('a'), { href: url, download: `${a.title}-筆記.md` });
+  document.body.appendChild(el); el.click(); el.remove();
+  URL.revokeObjectURL(url);
+  toast('✓ 已匯出 Markdown');
+}
+
+// ── 6. Notes search (cross-article) ───────────────────────────
+function openNotesSearch() {
+  const p = document.getElementById('notes-search-panel');
+  p.classList.add('open');
+  document.getElementById('notes-search-q').value = '';
+  document.getElementById('notes-search-results').innerHTML = '';
+  setTimeout(() => document.getElementById('notes-search-q').focus(), 50);
+}
+function closeNotesSearch() {
+  document.getElementById('notes-search-panel').classList.remove('open');
+}
+function searchAllNotes(q) {
+  const res = document.getElementById('notes-search-results');
+  if (!q.trim()) { res.innerHTML = ''; return; }
+  const ql = q.toLowerCase();
+  const hits = [];
+  articles.forEach(a => {
+    getNotes(a.id).forEach(n => {
+      if (n.text.toLowerCase().includes(ql)) hits.push({ a, n });
+    });
+  });
+  res.innerHTML = hits.slice(0, 30).map(({ a, n }) => `
+    <div class="nsp-item" onclick="closeNotesSearch();viewArticle(${a.id});setTimeout(()=>{if(!document.getElementById('notes-panel').classList.contains('open'))toggleNotes();},300)">
+      <div class="nsp-item-title">${esc(a.title)}</div>
+      <div class="nsp-item-text">${esc((n.anchorText ? '🔗 ' + n.anchorText.slice(0,20) + '  ' : '') + n.text.slice(0,80))}${n.text.length > 80 ? '…' : ''}</div>
+    </div>`).join('') || '<div style="color:var(--text-faint);font-size:12px;padding:12px 14px">找不到符合的筆記</div>';
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeNotesSearch();
+});
+
+// ── 7. Batch operations ────────────────────────────────────────
+let _batchMode = false, _batchSel = new Set();
+function toggleBatchMode() {
+  _batchMode = !_batchMode;
+  _batchSel.clear();
+  const bar = document.getElementById('batch-bar');
+  if (bar) bar.style.display = _batchMode ? 'flex' : 'none';
+  const btn = document.getElementById('btn-batch');
+  if (btn) btn.classList.toggle('btn-batch-active', _batchMode);
+  if (!_batchMode) document.getElementById('batch-count').textContent = '已選 0 篇';
+  renderList();
+}
+function toggleBatchSel(id) {
+  _batchSel.has(id) ? _batchSel.delete(id) : _batchSel.add(id);
+  document.getElementById('batch-count').textContent = `已選 ${_batchSel.size} 篇`;
+  // update checkbox state without full re-render
+  const cb = document.querySelector(`.batch-cb[data-id="${id}"]`);
+  if (cb) cb.checked = _batchSel.has(id);
+}
+async function batchDelete() {
+  if (!_batchSel.size) { toast('請先勾選文章'); return; }
+  if (!confirm(`確定刪除已選 ${_batchSel.size} 篇文章？`)) return;
+  toast('刪除中…');
+  for (const id of _batchSel) {
+    try { await _apiDelete(`/articles/${id}`); } catch(e) {}
+  }
+  articles = articles.filter(a => !_batchSel.has(a.id));
+  _batchSel.clear();
+  toggleBatchMode();
+  renderList();
+  toast('✓ 已批次刪除');
+}
+async function batchMove() {
+  if (!_batchSel.size) { toast('請先勾選文章'); return; }
+  const folder = prompt('移動到資料夾名稱（留空 = 未分類）：');
+  if (folder === null) return;
+  toast('移動中…');
+  if (folder && !folders.includes(folder)) await _apiCreateFolder(folder);
+  for (const id of _batchSel) {
+    const catId = folderCatMap[folder] || null;
+    try {
+      await _apiPatch(`/articles/${id}`, { category_id: catId });
+      const a = articles.find(x => x.id === id);
+      if (a) a.folder = folder;
+    } catch(e) {}
+  }
+  _batchSel.clear();
+  toggleBatchMode();
+  renderList();
+  toast('✓ 已移動資料夾');
+}
+async function batchAddTag() {
+  if (!_batchSel.size) { toast('請先勾選文章'); return; }
+  const tag = prompt('加入標籤名稱：');
+  if (!tag?.trim()) return;
+  toast('加入標籤中…');
+  for (const id of _batchSel) {
+    const a = articles.find(x => x.id === id);
+    if (!a) continue;
+    const tags = [...new Set([...(a.tags || []), tag.trim()])];
+    try { await _apiPatch(`/articles/${id}`, { tags }); a.tags = tags; } catch(e) {}
+  }
+  _batchSel.clear();
+  toggleBatchMode();
+  renderList();
+  toast('✓ 已加入標籤');
+}
+
+// ── 8. Stats panel ────────────────────────────────────────────
+function openStats() {
+  const total      = articles.length;
+  const totalChars = articles.reduce((s, a) => s + (a.content || '').replace(/\s/g, '').length, 0);
+  const folderCounts = {};
+  articles.forEach(a => { const f = a.folder || '未分類'; folderCounts[f] = (folderCounts[f] || 0) + 1; });
+  const tagCounts = {};
+  articles.forEach(a => (a.tags || []).forEach(t => { tagCounts[t] = (tagCounts[t] || 0) + 1; }));
+  const topTags    = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]).slice(0, 20);
+  const topFolders = Object.entries(folderCounts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  document.getElementById('stats-content').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+      <div style="background:var(--bg-light);border-radius:10px;padding:14px 16px">
+        <div style="font-size:32px;font-weight:700;color:var(--accent)">${total}</div>
+        <div style="font-size:12px;color:var(--text-muted)">篇文章</div>
+      </div>
+      <div style="background:var(--bg-light);border-radius:10px;padding:14px 16px">
+        <div style="font-size:32px;font-weight:700;color:var(--accent)">${totalChars >= 1000 ? Math.round(totalChars/1000) + 'K' : totalChars}</div>
+        <div style="font-size:12px;color:var(--text-muted)">總字數</div>
+      </div>
+    </div>
+    ${topFolders.length ? `<div style="margin-bottom:16px">
+      <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--text-muted)">資料夾分布</div>
+      ${topFolders.map(([f, c]) => `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+          <div style="font-size:12px;color:var(--text-main);width:88px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0" title="${esc(f)}">${esc(f)}</div>
+          <div style="flex:1;height:6px;background:var(--border);border-radius:3px">
+            <div style="width:${Math.round(c/total*100)}%;height:100%;background:var(--accent);border-radius:3px"></div>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);flex-shrink:0">${c}</div>
+        </div>`).join('')}
+    </div>` : ''}
+    ${topTags.length ? `<div>
+      <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--text-muted)">標籤雲</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${topTags.map(([t, c]) => `<span style="background:rgba(200,169,110,${Math.min(.75, c/topTags[0][1]*.55+.2).toFixed(2)});color:var(--text-main);border-radius:20px;padding:3px 10px;font-size:${Math.min(14, 10+c)}px;cursor:pointer" onclick="closeStats();filterByTag('${escAttr(t)}')" title="${c} 篇文章">${esc(t)}<span style="font-size:9px;opacity:.65;margin-left:4px">${c}</span></span>`).join('')}
+      </div>
+    </div>` : ''}`;
+  document.getElementById('stats-panel').classList.add('open');
+}
+function closeStats() {
+  document.getElementById('stats-panel').classList.remove('open');
+}
+
+// ── 9. URL fetch ──────────────────────────────────────────────
+function showFetchUrlDialog() {
+  document.getElementById('fetch-url-dialog').classList.add('open');
+  document.getElementById('fetch-url-input').value = '';
+  setTimeout(() => document.getElementById('fetch-url-input').focus(), 50);
+}
+function hideFetchUrlDialog() {
+  document.getElementById('fetch-url-dialog').classList.remove('open');
+}
+async function doFetchUrl() {
+  const url = document.getElementById('fetch-url-input').value.trim();
+  if (!url) return;
+  const btn = document.getElementById('fetch-url-btn');
+  btn.textContent = '抓取中…'; btn.disabled = true;
+  try {
+    const res = await fetch(`${API_BASE}/fetch-url?url=${encodeURIComponent(url)}`).then(r => r.json());
+    if (res.detail) { toast('抓取失敗：' + res.detail); return; }
+    if (res.title)   document.getElementById('f-title').value   = res.title;
+    if (res.content) document.getElementById('f-content').value = res.content;
+    const src = document.getElementById('f-source');
+    if (src && !src.value) src.value = url;
+    hideFetchUrlDialog();
+    toast('✓ 已填入文章內容');
+  } catch(e) { toast('抓取失敗'); }
+  finally { btn.textContent = '抓取'; btn.disabled = false; }
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { hideFetchUrlDialog(); closeStats(); }
+});
 </script>
 <!-- Notes floating window -->
 <div id="notes-panel">
   <div class="notes-panel-header" id="notes-panel-header">
     <span class="notes-panel-title">📝 筆記</span>
-    <button class="notes-panel-close" onclick="toggleNotes()" title="關閉">×</button>
+    <div style="display:flex;gap:2px;align-items:center">
+      <button class="notes-panel-close" onclick="exportNotes()" title="匯出筆記為 Markdown" style="font-size:14px">↓</button>
+      <button class="notes-panel-close" onclick="toggleNotes()" title="關閉">×</button>
+    </div>
   </div>
   <div class="notes-panel-body">
     <div class="notes-input-wrap">
@@ -4558,5 +4930,39 @@ document.addEventListener('keydown', function(e) {
   <div class="hl-sep"></div>
   <button class="hl-erase-btn" onclick="hlHideToolbar()">✕</button>
 </div>
+
+<!-- TOC panel -->
+<div id="toc-panel"><div class="toc-heading">目錄</div><div id="toc-list"></div></div>
+
+<!-- Notes search panel -->
+<div id="notes-search-panel">
+  <div class="nsp-header">
+    <input id="notes-search-q" type="text" placeholder="搜尋所有文章的筆記…" oninput="searchAllNotes(this.value)">
+    <button onclick="closeNotesSearch()" style="background:none;border:none;font-size:16px;cursor:pointer;color:var(--text-muted);line-height:1">×</button>
+  </div>
+  <div class="nsp-results" id="notes-search-results"></div>
+</div>
+
+<!-- Stats panel -->
+<div id="stats-panel">
+  <div class="stats-inner">
+    <button onclick="closeStats()" style="position:absolute;top:14px;right:14px;background:none;border:none;font-size:18px;cursor:pointer;color:var(--text-muted);line-height:1">×</button>
+    <h2 style="margin:0 0 20px;font-size:16px;font-weight:700">📊 統計總覽</h2>
+    <div id="stats-content"></div>
+  </div>
+</div>
+
+<!-- Fetch URL dialog -->
+<div id="fetch-url-dialog">
+  <div class="fud-inner">
+    <div style="font-size:14px;font-weight:600;margin-bottom:12px;color:var(--text-main)">🔗 從 URL 抓取文章</div>
+    <input id="fetch-url-input" type="url" placeholder="https://…">
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn-cancel" onclick="hideFetchUrlDialog()">取消</button>
+      <button class="btn-save" id="fetch-url-btn" onclick="doFetchUrl()">抓取</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
