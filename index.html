@@ -326,12 +326,14 @@ body.v-resizing * { cursor: ns-resize !important; user-select: none !important; 
 
 #main {
   flex: 1;
-  background: var(--bg-light);
+  background: #faf7f0;
   display: flex;
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
 }
+body.dark #main { background: var(--bg-light); }
+.meta-reading .meta-value { color: var(--text-muted); font-weight: 400; font-size: 13px; }
 #content-area {
   flex: 1;
   overflow: hidden;
@@ -1954,7 +1956,6 @@ input:-webkit-autofill:focus {
         <button class="btn-edit" id="btn-fullscreen" onclick="toggleFullscreen()" title="全螢幕閱讀（ESC 退出）" style="margin-left:auto">⤢</button>
         <button class="btn-edit" onclick="printArticle()" title="列印 / 匯出 PDF">⎙ 列印</button>
       </div>
-      <div class="word-count-bar" id="word-count-bar"></div>
       <div class="article-meta-bar">
         <div class="meta-item">
           <span class="meta-label">資料夾</span>
@@ -1975,6 +1976,10 @@ input:-webkit-autofill:focus {
         <div class="meta-item" id="view-keywords-item" style="display:none">
           <span class="meta-label">關鍵字</span>
           <div class="meta-value" id="view-keywords"></div>
+        </div>
+        <div class="meta-item meta-reading" style="margin-left:auto">
+          <span class="meta-label">閱讀時間</span>
+          <span class="meta-value" id="word-count-bar"></span>
         </div>
       </div>
       <div class="article-title-display" id="view-title"></div>
