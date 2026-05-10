@@ -457,6 +457,20 @@ body.dark #main { background: var(--bg-light); }
   margin-bottom: 24px;
   letter-spacing: -0.3px;
   flex-shrink: 0;
+  max-height: 280px;
+  overflow: hidden;
+  transform-origin: top left;
+  transition: max-height 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+              margin-bottom 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.22s ease,
+              transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.article-title-display.collapsed {
+  max-height: 0;
+  margin-bottom: 0;
+  opacity: 0;
+  transform: translateY(-6px) scale(0.96);
+  pointer-events: none;
 }
 .article-content-display {
   font-family: 'Segoe UI', '微軟正黑體', 'Microsoft JhengHei', sans-serif;
@@ -3715,6 +3729,12 @@ initData();
   scrollBody.addEventListener('scroll', () => {
     const { scrollTop, scrollHeight, clientHeight } = scrollBody;
     const max = scrollHeight - clientHeight;
+    // 標題往上縮回（hysteresis：超過 40 收，回到 8 以內展開）
+    const titleEl = document.getElementById('view-title');
+    if (titleEl) {
+      if (scrollTop > 40) titleEl.classList.add('collapsed');
+      else if (scrollTop < 8) titleEl.classList.remove('collapsed');
+    }
     if (max <= 0) { bar.classList.remove('visible'); target = current = 0; return; }
     bar.classList.add('visible');
     target = Math.min(100, (scrollTop / max) * 100);
@@ -3727,6 +3747,7 @@ initData();
     if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
     bar.style.width = '0%';
     bar.classList.remove('visible', 'complete');
+    document.getElementById('view-title')?.classList.remove('collapsed');
   };
 })();
 
