@@ -1378,6 +1378,41 @@ body.dark .btn-hl-active { background: rgba(255,214,0,0.15) !important; color: #
 .note-item-text.md-rendered blockquote { border-left: 3px solid var(--accent); padding-left: 10px; color: var(--text-muted); margin: 6px 0; }
 .note-item-text.md-rendered strong { font-weight: 600; }
 .note-item-text.md-rendered a { color: var(--accent); }
+/* ── Tables in notes ─────────────────────────────── */
+.note-item-text.md-rendered table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0;
+  font-size: 12.5px;
+  background: var(--bg-darker);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px var(--border);
+}
+.note-item-text.md-rendered thead { background: rgba(200,169,110,0.10); }
+.note-item-text.md-rendered th {
+  padding: 6px 9px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-main);
+  border-bottom: 1px solid var(--accent-dim);
+  white-space: nowrap;
+}
+.note-item-text.md-rendered td {
+  padding: 5px 9px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-main);
+  vertical-align: top;
+}
+.note-item-text.md-rendered tr:last-child td { border-bottom: none; }
+.note-item-text.md-rendered tr:hover td { background: rgba(200,169,110,0.05); }
+body.dark .note-item-text.md-rendered table { background: #1a1816; box-shadow: 0 0 0 1px #3a3630; }
+body.dark .note-item-text.md-rendered thead { background: rgba(200,169,110,0.08); }
+/* anchor-tooltip 也吃同一套 */
+#anchor-tooltip.md-rendered table { width:100%; border-collapse: collapse; margin: 5px 0; font-size: 11px; }
+#anchor-tooltip.md-rendered th,
+#anchor-tooltip.md-rendered td { padding: 3px 6px; border: 1px solid rgba(255,255,255,0.18); text-align: left; }
+#anchor-tooltip.md-rendered th { background: rgba(255,255,255,0.08); font-weight: 600; }
 /* format toggle */
 .note-fmt-btn {
   background: none; border: 1px solid var(--border); border-radius: 4px;
@@ -4396,6 +4431,7 @@ function renderNotes() {
           <textarea class="note-edit-textarea" id="edit-ta-${note.id}">${esc(note.text)}</textarea>
           <div style="display:flex;gap:5px;align-items:center">
             <button class="note-img-upload-btn" onclick="document.getElementById('note-edit-img-file').click()">圖片</button>
+            <button class="note-img-upload-btn" onclick="insertTableTpl('edit-ta-${note.id}', setEditFmt)" title="插入表格">表格</button>
             <input type="file" id="note-edit-img-file" accept="image/*" multiple style="display:none" onchange="onEditImgSelect(this)">
             <div class="note-edit-actions" style="flex:1">
               <button class="note-edit-save" onclick="saveNoteEdit('${note.id}')">✓ 儲存</button>
@@ -4519,6 +4555,22 @@ function removeEditImg(i) {
 
 function openNoteImg(imgs, idx) {
   openLightbox(imgs, idx);
+}
+
+// 插入 Markdown 表格範本到 textarea；如果格式不是 md 會自動切到 md
+function insertTableTpl(textareaId, fmtSetter) {
+  const ta = document.getElementById(textareaId);
+  if (!ta) return;
+  if (typeof fmtSetter === 'function') fmtSetter('md');
+  const tpl = '\n| 欄位 1 | 欄位 2 | 欄位 3 |\n| --- | --- | --- |\n| 內容 | 內容 | 內容 |\n| 內容 | 內容 | 內容 |\n';
+  const start = ta.selectionStart, end = ta.selectionEnd;
+  const before = ta.value.slice(0, start);
+  const after  = ta.value.slice(end);
+  ta.value = before + tpl + after;
+  ta.selectionStart = ta.selectionEnd = start + tpl.length;
+  ta.focus();
+  // 觸發 input 事件以便其他監聽器（auto-resize 等）能反應
+  ta.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
 function addNote() {
@@ -4965,6 +5017,7 @@ document.addEventListener('keydown', e => {
       <textarea class="notes-textarea" id="note-input" placeholder="寫下你的想法、摘錄重點...&#10;Ctrl+Enter 儲存" style="flex:1;height:auto"></textarea>
       <div style="display:flex;gap:6px;margin-top:6px">
         <button class="note-img-upload-btn" onclick="document.getElementById('note-img-file').click()">圖片</button>
+        <button class="note-img-upload-btn" onclick="insertTableTpl('note-input', setNoteFormat)" title="插入表格範本（自動切 MD）">表格</button>
         <button class="notes-add-btn" style="flex:1;margin-top:0" onclick="addNote()">+ 新增筆記</button>
       </div>
       <input type="file" id="note-img-file" accept="image/*" multiple style="display:none" onchange="onNoteImgSelect(this)">
@@ -4979,6 +5032,7 @@ document.addEventListener('keydown', e => {
   <div class="note-fmt-row" style="margin-bottom:0">
     <button class="note-fmt-pick active" id="afmt-txt" onclick="setAnchorFmt('txt')">TXT</button>
     <button class="note-fmt-pick" id="afmt-md" onclick="setAnchorFmt('md')">MD</button>
+    <button class="note-img-upload-btn" style="margin-left:auto;padding:4px 9px;font-size:11px" onclick="insertTableTpl('anchor-note-input', setAnchorFmt)" title="插入表格">表格</button>
   </div>
   <textarea class="anchor-editor-textarea" id="anchor-note-input" placeholder="為此段文字加上筆記…"></textarea>
   <div class="anchor-editor-actions">
