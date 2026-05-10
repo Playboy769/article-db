@@ -2736,6 +2736,8 @@ function viewArticle(id) {
   const a = articles.find(x => x.id === id);
   if (!a) return;
   currentId = id;
+  // 雲端 ↔ 本地同步：螢光筆與筆記
+  _syncHlNotesOnOpen(a);
   document.getElementById('welcome-screen').style.display = 'none';
   document.getElementById('article-form').style.display = 'none';
 
@@ -4210,7 +4212,13 @@ document.addEventListener('keydown', function(e) {
 let hlEnabled = false;
 
 function getHls(id) { return JSON.parse(localStorage.getItem('hl_'+id)||'[]'); }
-function saveHls(id, arr) { localStorage.setItem('hl_'+id, JSON.stringify(arr)); }
+function saveHls(id, arr) {
+  const json = JSON.stringify(arr);
+  localStorage.setItem('hl_'+id, json);
+  const a = articles.find(x => x.id === id);
+  if (a) a.highlights = json;
+  _syncFieldToCloud(id, 'highlights', json);
+}
 
 function toggleHighlighter() {
   hlEnabled = !hlEnabled;
@@ -4321,7 +4329,52 @@ function hlWrapInDOM(container, text, color, id) {
 
 // ── Notes ────────────────────────────────────────────────────
 function getNotes(id) { return JSON.parse(localStorage.getItem('notes_'+id)||'[]'); }
-function saveNotes(id, arr) { localStorage.setItem('notes_'+id, JSON.stringify(arr)); }
+function saveNotes(id, arr) {
+  const json = JSON.stringify(arr);
+  localStorage.setItem('notes_'+id, json);
+  const a = articles.find(x => x.id === id);
+  if (a) a.notes = json;
+  _syncFieldToCloud(id, 'notes', json);
+}
+
+// 螢光筆／筆記雲端同步：debounce 600ms，避免每次按鍵都打後端
+const _syncTimers = {};         // key = `${id}:${field}` → timeout
+function _syncFieldToCloud(id, field, json) {
+  const key = id + ':' + field;
+  clearTimeout(_syncTimers[key]);
+  _syncTimers[key] = setTimeout(() => {
+    delete _syncTimers[key];
+    _apiPatch(`/articles/${id}`, { [field]: json }).catch(err => {
+      console.warn('[sync] failed', field, id, err);
+      // 失敗就靜默重試一次
+      setTimeout(() => _apiPatch(`/articles/${id}`, { [field]: json }).catch(()=>{}), 4000);
+    });
+  }, 600);
+}
+
+// 開啟文章時同步：雲端有資料 → 蓋過本地；雲端空但本地有 → 上傳
+function _syncHlNotesOnOpen(a) {
+  if (!a) return;
+  const id = a.id;
+  for (const field of ['highlights', 'notes']) {
+    const lsKey = (field === 'highlights' ? 'hl_' : 'notes_') + id;
+    const cloud = a[field];                   // 從 server 拿來的字串
+    const local = localStorage.getItem(lsKey);
+
+    let cloudArr = [];
+    try { cloudArr = cloud ? JSON.parse(cloud) : []; } catch(e) { cloudArr = []; }
+    let localArr = [];
+    try { localArr = local ? JSON.parse(local) : []; } catch(e) { localArr = []; }
+
+    if (cloudArr.length) {
+      // 雲端有資料 → 以雲端為準（多裝置同步來源）
+      localStorage.setItem(lsKey, cloud);
+    } else if (localArr.length) {
+      // 雲端空但本地有 → 一次性回填到雲端
+      _syncFieldToCloud(id, field, local);
+    }
+  }
+}
 
 let _noteFmt = 'txt'; // current input format
 function setNoteFormat(fmt) {
