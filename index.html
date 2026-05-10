@@ -366,14 +366,36 @@ body.dark #main { background: var(--bg-light); }
   position: absolute;
   top: 0; left: 0;
   height: 3px; width: 0%;
-  background: var(--accent);
-  border-radius: 0 2px 2px 0;
-  transition: width 0.08s linear;
+  background: linear-gradient(90deg,
+    rgba(200,169,110,0.45) 0%,
+    var(--accent) 35%,
+    #e6cb95 65%,
+    #f4dcaa 88%,
+    var(--accent) 100%);
+  background-size: 220% 100%;
+  background-position: 100% 0;
+  border-radius: 0 3px 3px 0;
   z-index: 10;
   pointer-events: none;
   opacity: 0;
+  box-shadow:
+    0 0 10px rgba(200,169,110,0.55),
+    2px 0 8px rgba(200,169,110,0.45);
+  animation: progress-shimmer 2.4s linear infinite;
+  transition: opacity 0.25s ease, height 0.2s ease, box-shadow 0.25s ease;
+  will-change: width;
 }
 #read-progress-bar.visible { opacity: 1; }
+#read-progress-bar.complete {
+  height: 4px;
+  box-shadow:
+    0 0 16px rgba(200,169,110,0.85),
+    3px 0 12px rgba(200,169,110,0.65);
+}
+@keyframes progress-shimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
 
 .article-toolbar {
   flex-shrink: 0;
@@ -2733,8 +2755,7 @@ function viewArticle(id) {
   renderViewGallery('view-image-gallery', getImages(a));
 
   // 重置閱讀進度條
-  const bar = document.getElementById('read-progress-bar');
-  if (bar) { bar.style.width = '0%'; bar.classList.remove('visible'); }
+  window.resetReadProgress?.();
   const scrollBody = document.querySelector('#article-view .article-scroll-body');
   if (scrollBody) scrollBody.scrollTop = 0;
 
@@ -3620,18 +3641,56 @@ async function initData() {
 
 initData();
 
-// ── 閱讀進度條 ────────────────────────────────────────────────
+// ── 閱讀進度條（彈簧物理模型） ────────────────────────────────
 (function setupReadProgress() {
   const scrollBody = document.querySelector('#article-view .article-scroll-body');
   const bar = document.getElementById('read-progress-bar');
   if (!scrollBody || !bar) return;
+
+  let target = 0, current = 0, velocity = 0, rafId = null;
+  const TENSION  = 0.13;   // 拉力（越大越快貼近）
+  const FRICTION = 0.78;   // 阻尼（越大越快停下，<1）
+
+  function step() {
+    const diff = target - current;
+    velocity += diff * TENSION;
+    velocity *= FRICTION;
+    current  += velocity;
+
+    // 收斂條件：差距小、速度小 → 停止
+    if (Math.abs(diff) < 0.04 && Math.abs(velocity) < 0.04) {
+      current = target;
+      velocity = 0;
+      bar.style.width = current + '%';
+      bar.classList.toggle('complete', current >= 99.5);
+      rafId = null;
+      return;
+    }
+    // 允許 overshoot 過 100（彈出效果），但顯示時夾回 0~100
+    const display = Math.max(0, Math.min(100.5, current));
+    bar.style.width = display + '%';
+    bar.classList.toggle('complete', current >= 99);
+    rafId = requestAnimationFrame(step);
+  }
+
+  function kick() { if (!rafId) rafId = requestAnimationFrame(step); }
+
   scrollBody.addEventListener('scroll', () => {
     const { scrollTop, scrollHeight, clientHeight } = scrollBody;
     const max = scrollHeight - clientHeight;
-    if (max <= 0) { bar.classList.remove('visible'); return; }
+    if (max <= 0) { bar.classList.remove('visible'); target = current = 0; return; }
     bar.classList.add('visible');
-    bar.style.width = Math.min(100, (scrollTop / max) * 100) + '%';
-  });
+    target = Math.min(100, (scrollTop / max) * 100);
+    kick();
+  }, { passive: true });
+
+  // 切換文章時的硬重置（避免從上一篇位置動畫過來）
+  window.resetReadProgress = () => {
+    target = current = velocity = 0;
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    bar.style.width = '0%';
+    bar.classList.remove('visible', 'complete');
+  };
 })();
 
 // ── 列印 / 匯出 PDF ───────────────────────────────────────────
