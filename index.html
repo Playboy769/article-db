@@ -2343,6 +2343,30 @@ input:-webkit-autofill:focus {
 
 <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
 <script>
+// ── Markdown + LaTeX 共存：先把數學區段隔離成占位符，跑完 marked 再還原 ──
+// 避免 Markdown 把 $x_i$ 裡的 _i_ 解析成 <em>i</em>，把 LaTeX 切壞
+function mdLatex(text) {
+  if (!text) return '';
+  const blocks = [];
+  const tok = m => {
+    blocks.push(m);
+    return 'XMATHPLACEHOLDER' + (blocks.length - 1) + 'XEND';
+  };
+  let t = String(text);
+  // 順序：$$...$$ → \[...\] → \(...\) → $...$（單行非空白邊界）
+  t = t.replace(/\$\$([\s\S]+?)\$\$/g, tok);
+  t = t.replace(/\\\[([\s\S]+?)\\\]/g, tok);
+  t = t.replace(/\\\(([\s\S]+?)\\\)/g, tok);
+  // 單錢字號：左右需是非空白字元，避免抓到 "$100 ... $200"
+  t = t.replace(/(^|[^\\$])\$([^\s$][^$\n]*?[^\s$])\$(?!\d)/g, (_, p, c) => p + tok('$' + c + '$'));
+  // 單一字元的：$x$
+  t = t.replace(/(^|[^\\$])\$([^\s$\d])\$(?!\d)/g,        (_, p, c) => p + tok('$' + c + '$'));
+
+  let html = (typeof marked !== 'undefined' && marked.parse) ? marked.parse(t) : t;
+  html = html.replace(/XMATHPLACEHOLDER(\d+)XEND/g, (_, i) => blocks[+i] || '');
+  return html;
+}
+
 // ── KaTeX LaTeX renderer ──────────────────────────────────────
 function applyLatex(el) {
   if (!el) return;
@@ -2794,7 +2818,7 @@ function viewArticle(id) {
     kwItem.style.display = 'none';
   }
 
-  document.getElementById('view-content').innerHTML = marked.parse(a.content || '');
+  document.getElementById('view-content').innerHTML = mdLatex(a.content || '');
   applyLatex(document.getElementById('view-content'));
   applyStoredHighlights(id);
   applyAnchorNotes(id);
@@ -3167,7 +3191,7 @@ function viewReport(id) {
     srcEl.textContent = src || '—';
   }
 
-  document.getElementById('rv-content').innerHTML = marked.parse(r.content || '');
+  document.getElementById('rv-content').innerHTML = mdLatex(r.content || '');
   applyLatex(document.getElementById('rv-content'));
   renderViewGallery('report-view-image-gallery', getImages(r));
 
@@ -3598,7 +3622,8 @@ function togglePreview() {
     const pane = document.createElement('div');
     pane.className = 'preview-pane article-content-display';
     pane.id = 'preview-pane';
-    pane.innerHTML = marked.parse(ta.value || '');
+    pane.innerHTML = mdLatex(ta.value || '');
+    applyLatex(pane);
     wrap.appendChild(pane);
     ta.addEventListener('input', updatePreview);
   } else {
@@ -3611,7 +3636,10 @@ function togglePreview() {
 }
 function updatePreview() {
   const pane = document.getElementById('preview-pane');
-  if (pane) pane.innerHTML = marked.parse(document.getElementById('f-content').value || '');
+  if (pane) {
+    pane.innerHTML = mdLatex(document.getElementById('f-content').value || '');
+    applyLatex(pane);
+  }
 }
 
 // ── Backup / Restore JSON ─────────────────────────────────────
@@ -4183,7 +4211,7 @@ document.addEventListener('mouseover', function(e) {
   if (!note) return;
   const isMd = note.format === 'md';
   tooltip.className = isMd ? 'md-rendered' : '';
-  tooltip.innerHTML = isMd ? marked.parse(note.text) : esc(note.text);
+  tooltip.innerHTML = isMd ? mdLatex(note.text) : esc(note.text);
   tooltip.style.display = 'block';
   requestAnimationFrame(() => {
     const rect = anchor.getBoundingClientRect();
@@ -4519,7 +4547,7 @@ function renderNotes() {
     }
 
     const contentHtml = isMd
-      ? `<div class="note-item-text md-rendered">${marked.parse(note.text)}</div>`
+      ? `<div class="note-item-text md-rendered">${mdLatex(note.text)}</div>`
       : `<div class="note-item-text">${esc(note.text)}</div>`;
     return `<div class="note-item" data-note-id="${note.id}">
       <div class="note-item-meta">
