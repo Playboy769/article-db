@@ -2544,6 +2544,22 @@ function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
+// ── 資料夾排序：先 A-Z 英文，再中文（按拼音/筆畫） ────────────
+// 規則：以資料夾名稱第一個字元判斷分組
+//   - ASCII 字母/數字 → English 組（A→Z，不分大小寫）
+//   - 其他（中日韓等）→ CJK 組（用 localeCompare('zh-Hant') 比較）
+function sortFoldersMixed(arr) {
+  const isLatin = s => /^[a-zA-Z0-9]/.test(s || '');
+  return [...arr].sort((a, b) => {
+    const la = isLatin(a), lb = isLatin(b);
+    if (la && !lb) return -1;
+    if (!la && lb) return 1;
+    return la
+      ? a.toLowerCase().localeCompare(b.toLowerCase(), 'en')
+      : a.localeCompare(b, 'zh-Hant');
+  });
+}
+
 // ── 資料夾標籤渲染 ──────────────────────────────────────────
 function renderFolders() {
   const container = document.getElementById('folder-tabs');
@@ -2558,7 +2574,7 @@ function renderFolders() {
       <span class="folder-tab-count">${allCount}</span>
     </div>`;
 
-  folders.forEach(f => {
+  sortFoldersMixed(folders).forEach(f => {
     const count = articles.filter(a => a.folder === f).length;
     html += `
     <div class="folder-tab ${currentFolder === f ? 'active' : ''}" data-folder="${esc(f)}">
@@ -2600,7 +2616,7 @@ function renderFolders() {
     btn.addEventListener('click', e => { e.stopPropagation(); deleteFolder(btn.dataset.del); });
   });
 
-  datalist.innerHTML = folders.map(f => `<option value="${esc(f)}">`).join('');
+  datalist.innerHTML = sortFoldersMixed(folders).map(f => `<option value="${esc(f)}">`).join('');
 }
 
 function selectFolder(name) {
@@ -3878,7 +3894,7 @@ async function loadLinks() {
   }
 }
 function getLinkFolders() {
-  return [...new Set(links.map(l => l.folder).filter(Boolean))].sort();
+  return sortFoldersMixed([...new Set(links.map(l => l.folder).filter(Boolean))]);
 }
 
 function renderLinkFolders() {
