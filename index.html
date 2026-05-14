@@ -904,16 +904,38 @@ body:not(.links-mode) .links-only { display: none !important; }
   flex-direction: column;
   flex: 1;
   overflow: hidden;
-  padding: 40px 48px 0;
+  padding: 14px 48px 0;
+  position: relative;
 }
-.report-company-name {
-  font-family: 'DM Serif Display', serif;
-  font-size: 32px;
-  color: var(--text-main);
-  line-height: 1.3;
-  margin-bottom: 4px;
-  letter-spacing: -0.3px;
-  flex-shrink: 0;
+#report-progress-bar {
+  position: absolute;
+  top: 0; left: 0;
+  height: 3px; width: 0%;
+  background: linear-gradient(90deg,
+    rgba(200,169,110,0.45) 0%,
+    var(--accent) 35%,
+    #e6cb95 65%,
+    #f4dcaa 88%,
+    var(--accent) 100%);
+  background-size: 220% 100%;
+  background-position: 100% 0;
+  border-radius: 0 3px 3px 0;
+  z-index: 10;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow:
+    0 0 4px rgba(200,169,110,0.55),
+    2px 0 2px rgba(200,169,110,0.45);
+  animation: progress-shimmer 2.4s linear infinite;
+  transition: opacity 0.25s ease, height 0.2s ease, box-shadow 0.25s ease;
+  will-change: width;
+}
+#report-progress-bar.visible { opacity: 1; }
+#report-progress-bar.complete {
+  height: 4px;
+  box-shadow:
+    0 0 10px rgba(200,169,110,0.85),
+    3px 0 6px rgba(200,169,110,0.65);
 }
 .report-ticker { font-size:14px; color:var(--text-muted); margin-bottom:20px; flex-shrink:0; }
 .report-meta-grid {
@@ -1622,7 +1644,8 @@ body.reading-fullscreen #main { margin-left: 0 !important; }
 
 /* ── Font size CSS var ───────────────────────────────────────── */
 :root { --content-fs: 15px; }
-.article-content-display { font-size: var(--content-fs); }
+.article-content-display,
+.report-content-display { font-size: var(--content-fs); }
 
 /* ── Batch bar ───────────────────────────────────────────────── */
 #batch-bar { display: none; gap: 6px; padding: 6px 12px;
@@ -2165,13 +2188,22 @@ input:-webkit-autofill:focus {
 
     <!-- ── 公司報告：閱讀 ── -->
     <div id="report-view">
+      <div id="report-progress-bar"></div>
       <div class="article-toolbar">
         <button class="btn-edit" onclick="showReportForm(currentReportId)">✎ 編輯</button>
         <button class="btn-delete" onclick="deleteReport(currentReportId)">✕ 刪除</button>
+        <button class="btn-star" id="btn-rstar" onclick="toggleReportStar(currentReportId)">☆ 收藏</button>
+        <button class="btn-duplicate" onclick="duplicateReport(currentReportId)">⎘ 複製</button>
+        <button class="btn-edit" id="btn-rhighlight" onclick="toggleHighlighter()" title="螢光筆標記選取文字">🖊 螢光筆</button>
+        <button class="btn-edit" id="btn-rnotes" onclick="toggleNotes()" title="筆記">📝 <span id="rnotes-badge"></span>筆記</button>
+        <div style="display:flex;gap:2px;margin-left:4px;flex-shrink:0">
+          <button class="btn-edit" onclick="changeFontSize(-1)" title="縮小字體" style="padding:4px 8px;font-weight:600">A−</button>
+          <button class="btn-edit" onclick="changeFontSize(1)"  title="放大字體" style="padding:4px 8px;font-weight:600">A+</button>
+        </div>
+        <button class="btn-edit" onclick="toggleFullscreen()" title="全螢幕閱讀（ESC 退出）" style="margin-left:auto">⤢</button>
+        <button class="btn-edit" onclick="printReport()" title="列印 / 匯出 PDF">⎙ 列印</button>
       </div>
-      <div class="report-company-name" id="rv-company"></div>
-      <div class="report-ticker" id="rv-ticker"></div>
-      <div class="report-meta-grid">
+      <div class="article-meta-bar">
         <div class="meta-item">
           <span class="meta-label">產業類別</span>
           <span class="meta-value" id="rv-sector">—</span>
@@ -2196,7 +2228,13 @@ input:-webkit-autofill:focus {
           <span class="meta-label">來源</span>
           <span class="meta-value" id="rv-source">—</span>
         </div>
+        <div class="meta-item meta-reading" style="margin-left:auto">
+          <span class="meta-label">閱讀時間</span>
+          <span class="meta-value" id="r-word-count-bar"></span>
+        </div>
       </div>
+      <div class="article-title-display" id="rv-company"></div>
+      <div class="report-ticker" id="rv-ticker"></div>
       <div class="article-scroll-body">
         <div id="report-view-image-gallery" class="image-gallery"></div>
         <div class="report-content-display" id="rv-content"></div>
@@ -2820,7 +2858,7 @@ function viewArticle(id) {
   if (!a) return;
   currentId = id;
   // 雲端 ↔ 本地同步：螢光筆與筆記
-  _syncHlNotesOnOpen(a);
+  _syncHlNotesOnOpen({type:'article', id: a.id}, a);
   document.getElementById('welcome-screen').style.display = 'none';
   document.getElementById('article-form').style.display = 'none';
 
@@ -2863,9 +2901,9 @@ function viewArticle(id) {
 
   document.getElementById('view-content').innerHTML = mdLatex(a.content || '');
   applyLatex(document.getElementById('view-content'));
-  applyStoredHighlights(id);
+  applyStoredHighlights({type:'article', id: a.id});
   applyAnchorNotes(id);
-  buildTOC();
+  buildTOC('view-content');
 
   // Close notes panel when switching articles, update badge
   document.getElementById('notes-panel')?.classList.remove('open');
@@ -3205,6 +3243,8 @@ function viewReport(id) {
   const r = reports.find(x => x.id === id);
   if (!r) return;
   currentReportId = id;
+  // 同步雲端 highlights/notes
+  _syncHlNotesOnOpen({type:'report', id: r.id}, r);
   document.getElementById('welcome-screen').style.display = 'none';
   document.getElementById('report-form').style.display    = 'none';
 
@@ -3220,6 +3260,18 @@ function viewReport(id) {
   document.getElementById('rv-target').textContent  = r.target  || '—';
   document.getElementById('rv-date').textContent    = r.date    || '—';
   document.getElementById('rv-analyst').textContent = r.analyst || '—';
+
+  // 收藏按鈕狀態
+  const sbtn = document.getElementById('btn-rstar');
+  if (sbtn) {
+    sbtn.classList.toggle('starred', !!r.starred);
+    sbtn.textContent = r.starred ? '★ 已收藏' : '☆ 收藏';
+  }
+
+  // 字數 / 閱讀時間
+  const chars = (r.content || '').replace(/\s/g, '').length;
+  const rwc = document.getElementById('r-word-count-bar');
+  if (rwc) rwc.textContent = chars > 0 ? `⏱ ${chars.toLocaleString()} 字 · 約 ${Math.ceil(chars / 300)} 分鐘閱讀` : '';
 
   const ratingEl = document.getElementById('rv-rating');
   ratingEl.innerHTML = r.rating
@@ -3237,6 +3289,20 @@ function viewReport(id) {
   document.getElementById('rv-content').innerHTML = mdLatex(r.content || '');
   applyLatex(document.getElementById('rv-content'));
   renderViewGallery('report-view-image-gallery', getImages(r));
+
+  // 重置進度條 + 標題收合狀態
+  window.resetReportProgress?.();
+  const scrollBody = document.querySelector('#report-view .article-scroll-body');
+  if (scrollBody) scrollBody.scrollTop = 0;
+
+  // 套用已存的螢光筆 + TOC
+  applyStoredHighlights({type:'report', id: r.id});
+  buildTOC('rv-content');
+
+  // 關閉筆記面板（避免帶上一篇狀態），同時刷新筆記
+  document.getElementById('notes-panel')?.classList.remove('open');
+  document.getElementById('toc-panel')?.classList.remove('visible');
+  renderNotes();
 
   renderReportList();
 }
@@ -3765,45 +3831,38 @@ async function initData() {
 
 initData();
 
-// ── 閱讀進度條（彈簧物理模型） ────────────────────────────────
-(function setupReadProgress() {
-  const scrollBody = document.querySelector('#article-view .article-scroll-body');
-  const bar = document.getElementById('read-progress-bar');
-  if (!scrollBody || !bar) return;
+// ── 閱讀進度條（彈簧物理模型，兩個 view 共用 helper） ──────────
+function _attachReadProgress(scrollSel, barId, titleId) {
+  const scrollBody = document.querySelector(scrollSel);
+  const bar = document.getElementById(barId);
+  if (!scrollBody || !bar) return () => {};
 
   let target = 0, current = 0, velocity = 0, rafId = null;
-  const TENSION  = 0.13;   // 拉力（越大越快貼近）
-  const FRICTION = 0.78;   // 阻尼（越大越快停下，<1）
+  const TENSION  = 0.13;
+  const FRICTION = 0.78;
 
   function step() {
     const diff = target - current;
     velocity += diff * TENSION;
     velocity *= FRICTION;
     current  += velocity;
-
-    // 收斂條件：差距小、速度小 → 停止
     if (Math.abs(diff) < 0.04 && Math.abs(velocity) < 0.04) {
-      current = target;
-      velocity = 0;
+      current = target; velocity = 0;
       bar.style.width = current + '%';
       bar.classList.toggle('complete', current >= 99.5);
-      rafId = null;
-      return;
+      rafId = null; return;
     }
-    // 允許 overshoot 過 100（彈出效果），但顯示時夾回 0~100
     const display = Math.max(0, Math.min(100.5, current));
     bar.style.width = display + '%';
     bar.classList.toggle('complete', current >= 99);
     rafId = requestAnimationFrame(step);
   }
-
   function kick() { if (!rafId) rafId = requestAnimationFrame(step); }
 
   scrollBody.addEventListener('scroll', () => {
     const { scrollTop, scrollHeight, clientHeight } = scrollBody;
     const max = scrollHeight - clientHeight;
-    // 標題往上縮回（hysteresis：超過 40 收，回到 8 以內展開）
-    const titleEl = document.getElementById('view-title');
+    const titleEl = titleId ? document.getElementById(titleId) : null;
     if (titleEl) {
       if (scrollTop > 40) titleEl.classList.add('collapsed');
       else if (scrollTop < 8) titleEl.classList.remove('collapsed');
@@ -3814,15 +3873,16 @@ initData();
     kick();
   }, { passive: true });
 
-  // 切換文章時的硬重置（避免從上一篇位置動畫過來）
-  window.resetReadProgress = () => {
+  return function reset() {
     target = current = velocity = 0;
     if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
     bar.style.width = '0%';
     bar.classList.remove('visible', 'complete');
-    document.getElementById('view-title')?.classList.remove('collapsed');
+    if (titleId) document.getElementById(titleId)?.classList.remove('collapsed');
   };
-})();
+}
+window.resetReadProgress   = _attachReadProgress('#article-view .article-scroll-body', 'read-progress-bar',   'view-title');
+window.resetReportProgress = _attachReadProgress('#report-view .article-scroll-body',  'report-progress-bar', 'rv-company');
 
 // ── 列印 / 匯出 PDF ───────────────────────────────────────────
 function printArticle() {
@@ -3886,6 +3946,99 @@ ${imgsHtml}
 <script>window.onload = function(){ window.print(); }<\/script>
 </body></html>`);
   win.document.close();
+}
+
+// ── 報告：列印、複製、收藏 ─────────────────────────────────────
+function printReport() {
+  const r = reports.find(x => x.id === currentReportId);
+  if (!r) return;
+  const imgs = getImages(r);
+  const imgsHtml = imgs.map(src =>
+    `<img src="${src}" style="max-width:100%;border-radius:6px;margin:12px 0;display:block;">`
+  ).join('');
+  const contentHtml = document.getElementById('rv-content').innerHTML;
+  const metaParts = [
+    r.ticker  ? `代號：${r.ticker}`   : '',
+    r.sector  ? `產業：${r.sector}`   : '',
+    r.rating  ? `評級：${r.rating}`   : '',
+    r.target  ? `目標價：${r.target}` : '',
+    r.date    ? `日期：${r.date}`     : '',
+    r.analyst ? `分析師：${r.analyst}`: '',
+    r.source  ? `來源：${r.source}`   : '',
+  ].filter(Boolean);
+
+  const win = window.open('', '_blank', 'width=820,height=700');
+  win.document.write(`<!DOCTYPE html>
+<html lang="zh-TW"><head>
+<meta charset="UTF-8">
+<title>${esc(r.company)}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', 'Noto Sans TC', 'PingFang TC', '微軟正黑體', 'Microsoft JhengHei', sans-serif;
+    max-width: 680px; margin: 48px auto; padding: 0 24px;
+    color: #2a2520; line-height: 1.9; font-size: 15px;
+  }
+  h1 { font-size: 28px; line-height: 1.3; margin-bottom: 16px; font-family: Georgia, serif; }
+  .meta {
+    font-size: 12px; color: #888; border-bottom: 1px solid #e0dbd4;
+    padding-bottom: 14px; margin-bottom: 24px;
+    display: flex; flex-wrap: wrap; gap: 10px 20px;
+  }
+  img { max-width: 100%; border-radius: 6px; margin: 12px 0; display: block; }
+  h2,h3,h4 { margin: 1.4em 0 0.5em; font-family: Georgia, serif; }
+  p  { margin-bottom: 0.9em; }
+  ul,ol { padding-left: 1.6em; margin-bottom: 0.9em; }
+  blockquote { border-left: 3px solid #c8a96e; padding: 8px 16px; margin: 1em 0; color: #777; background: #faf7f2; border-radius: 0 4px 4px 0; }
+  code { background: #f5f0e8; color: #9a5c2a; padding: 2px 6px; border-radius: 3px; font-size: 13px; }
+  pre  { background: #f8f5f0; border: 1px solid #e2d9cc; border-radius: 6px; padding: 14px 16px; overflow-x: auto; margin: 1em 0; }
+  pre code { background: none; color: #5a4a38; }
+  table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 14px; }
+  th { background: #f5f0e8; padding: 8px 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #c8a96e; }
+  td { padding: 8px 12px; border-bottom: 1px solid #e2d9cc; }
+  @media print { body { margin: 0; padding: 20px; max-width: 100%; } @page { margin: 1.5cm; } }
+</style>
+</head><body>
+<h1>${esc(r.company)}</h1>
+${metaParts.length ? `<div class="meta">${metaParts.map(p => `<span>${esc(p)}</span>`).join('')}</div>` : ''}
+${imgsHtml}
+<div>${contentHtml}</div>
+<script>window.onload = function(){ window.print(); }<\/script>
+</body></html>`);
+  win.document.close();
+}
+
+async function toggleReportStar(id) {
+  const r = reports.find(x => x.id === id);
+  if (!r) return;
+  const newVal = r.starred ? 0 : 1;
+  try { await _apiPatch(`/reports/${id}`, { starred: newVal }); } catch(e) {}
+  r.starred = newVal;
+  const btn = document.getElementById('btn-rstar');
+  if (btn) {
+    btn.classList.toggle('starred', !!newVal);
+    btn.textContent = newVal ? '★ 已收藏' : '☆ 收藏';
+  }
+  renderReportList();
+}
+
+async function duplicateReport(id) {
+  const r = reports.find(x => x.id === id);
+  if (!r) return;
+  const res = await _apiPost('/reports', {
+    company: `${r.company}（複製）`,
+    ticker: r.ticker || null, sector: r.sector || null,
+    rating: r.rating || null, target: r.target || null,
+    date: r.date || null, analyst: r.analyst || null,
+    source: r.source || null,
+    content: r.content || '',
+    images: JSON.stringify(r.images || []),
+  });
+  const newRep = _apiToReport(res);
+  reports.unshift(newRep);
+  toast('報告已複製');
+  viewReport(res.id);
+  renderReportList();
 }
 
 // ── Link Database ────────────────────────────────────────────
@@ -4305,20 +4458,60 @@ document.addEventListener('keydown', function(e) {
 // ── Highlighter ──────────────────────────────────────────────
 let hlEnabled = false;
 
-function getHls(id) { return JSON.parse(localStorage.getItem('hl_'+id)||'[]'); }
-function saveHls(id, arr) {
+// ── 文件抽象：支援 article 與 report 共用螢光筆/筆記 ──────────
+function _toDoc(idOrDoc) {
+  if (idOrDoc && typeof idOrDoc === 'object' && idOrDoc.type) return idOrDoc;
+  return { type: 'article', id: idOrDoc };
+}
+function _docKey(doc, kind) {
+  const prefix = kind === 'hl' ? 'hl_' : 'notes_';
+  return doc.type === 'report' ? `${prefix}r_${doc.id}` : `${prefix}${doc.id}`;
+}
+function _docEndpoint(doc) {
+  return doc.type === 'report' ? `/reports/${doc.id}` : `/articles/${doc.id}`;
+}
+function _docArr(doc) {
+  return doc.type === 'report' ? reports : articles;
+}
+function _docContentEl(doc) {
+  return doc.type === 'report'
+    ? document.getElementById('rv-content')
+    : document.getElementById('view-content');
+}
+function getCurrentDoc() {
+  const rv = document.getElementById('report-view');
+  const av = document.getElementById('article-view');
+  if (rv && rv.style.display !== 'none' && currentReportId) {
+    const r = reports.find(x => x.id === currentReportId);
+    if (r) return { type: 'report', id: currentReportId, obj: r };
+  }
+  if (av && av.style.display !== 'none' && currentId) {
+    const a = articles.find(x => x.id === currentId);
+    if (a) return { type: 'article', id: currentId, obj: a };
+  }
+  return null;
+}
+
+function getHls(idOrDoc) {
+  const doc = _toDoc(idOrDoc);
+  return JSON.parse(localStorage.getItem(_docKey(doc, 'hl')) || '[]');
+}
+function saveHls(idOrDoc, arr) {
+  const doc = _toDoc(idOrDoc);
   const json = JSON.stringify(arr);
-  localStorage.setItem('hl_'+id, json);
-  const a = articles.find(x => x.id === id);
-  if (a) a.highlights = json;
-  _syncFieldToCloud(id, 'highlights', json);
+  localStorage.setItem(_docKey(doc, 'hl'), json);
+  const obj = _docArr(doc).find(x => x.id === doc.id);
+  if (obj) obj.highlights = json;
+  _syncFieldToCloud(doc, 'highlights', json);
 }
 
 function toggleHighlighter() {
   hlEnabled = !hlEnabled;
-  const btn = document.getElementById('btn-highlight');
-  if (hlEnabled) btn.classList.add('btn-hl-active');
-  else           btn.classList.remove('btn-hl-active');
+  // 同步兩個工具列上的螢光筆按鈕狀態
+  ['btn-highlight', 'btn-rhighlight'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.classList.toggle('btn-hl-active', hlEnabled);
+  });
   if (!hlEnabled) hlHideToolbar();
   toast(hlEnabled ? '🖊 螢光筆已開啟，選取文字即可標記' : '螢光筆已關閉');
 }
@@ -4328,24 +4521,29 @@ function hlHideToolbar() {
   try { window.getSelection()?.removeAllRanges(); } catch(e) {}
 }
 
-// Show toolbar on text selection inside view-content
+// 找出目前 selection 落在哪個 content 元素內
+function _findActiveHlContainer(range) {
+  const a = document.getElementById('view-content');
+  const r = document.getElementById('rv-content');
+  if (a && a.contains(range.commonAncestorContainer)) return a;
+  if (r && r.contains(range.commonAncestorContainer)) return r;
+  return null;
+}
+
+// Show toolbar on text selection inside view-content or rv-content
 document.addEventListener('mouseup', function(e) {
   if (e.target.closest('#hl-toolbar')) return;
   const toolbar = document.getElementById('hl-toolbar');
-  const content = document.getElementById('view-content');
-  if (!content) { toolbar.style.display='none'; return; }
   const sel = window.getSelection();
   if (!sel || sel.isCollapsed || !sel.toString().trim()) {
     toolbar.style.display = 'none'; return;
   }
   const range = sel.getRangeAt(0);
-  if (!content.contains(range.commonAncestorContainer)) {
-    toolbar.style.display = 'none'; return;
-  }
+  const content = _findActiveHlContainer(range);
+  if (!content) { toolbar.style.display = 'none'; return; }
   // Position above selection
   const rect = range.getBoundingClientRect();
   toolbar.style.display = 'flex';
-  // Wait one frame so offsetWidth is correct
   requestAnimationFrame(() => {
     const tw = toolbar.offsetWidth;
     const left = Math.max(8, Math.min(window.innerWidth - tw - 8, rect.left + rect.width/2 - tw/2));
@@ -4357,9 +4555,11 @@ document.addEventListener('mouseup', function(e) {
 function hlApply(color) {
   const sel = window.getSelection();
   if (!sel || sel.isCollapsed) return;
-  const text = sel.toString();
-  if (!text.trim()) return;
-  const content = document.getElementById('view-content');
+  if (!sel.toString().trim()) return;
+  const doc = getCurrentDoc();
+  if (!doc) return;
+  const content = _docContentEl(doc);
+  if (!content) return;
   try {
     const range = sel.getRangeAt(0);
     if (!content.contains(range.commonAncestorContainer)) return;
@@ -4370,10 +4570,9 @@ function hlApply(color) {
     mark.dataset.hlId = hlId;
     mark.title = '點擊移除螢光筆';
     range.surroundContents(mark);
-    // Persist
-    const hls = getHls(currentId);
+    const hls = getHls(doc);
     hls.push({ id: hlId, text: mark.textContent, color });
-    saveHls(currentId, hls);
+    saveHls(doc, hls);
     sel.removeAllRanges();
   } catch(err) {
     toast('請選取同一段落內的文字');
@@ -4381,19 +4580,28 @@ function hlApply(color) {
   document.getElementById('hl-toolbar').style.display = 'none';
 }
 
-// Click mark → remove
+// Click mark → remove (doc-aware: 找到該 mark 所屬的 content 元素來決定 doc)
 document.addEventListener('click', function(e) {
   const mark = e.target.closest('mark.hl');
   if (!mark) return;
   const hlId = mark.dataset.hlId;
+  // 判斷該 mark 屬於哪個 content 元素
+  const av = document.getElementById('view-content');
+  const rv = document.getElementById('rv-content');
+  let doc = null;
+  if (av && av.contains(mark)) doc = { type: 'article', id: currentId };
+  else if (rv && rv.contains(mark)) doc = { type: 'report', id: currentReportId };
+  if (!doc || !doc.id) return;
   mark.replaceWith(document.createTextNode(mark.textContent));
-  saveHls(currentId, getHls(currentId).filter(h => h.id !== hlId));
+  saveHls(doc, getHls(doc).filter(h => h.id !== hlId));
 });
 
-function applyStoredHighlights(articleId) {
-  const hls = getHls(articleId);
+function applyStoredHighlights(idOrDoc) {
+  const doc = _toDoc(idOrDoc);
+  const hls = getHls(doc);
   if (!hls.length) return;
-  const content = document.getElementById('view-content');
+  const content = _docContentEl(doc);
+  if (!content) return;
   hls.forEach(hl => hlWrapInDOM(content, hl.text, hl.color, hl.id));
 }
 
@@ -4422,50 +4630,51 @@ function hlWrapInDOM(container, text, color, id) {
 }
 
 // ── Notes ────────────────────────────────────────────────────
-function getNotes(id) { return JSON.parse(localStorage.getItem('notes_'+id)||'[]'); }
-function saveNotes(id, arr) {
+function getNotes(idOrDoc) {
+  const doc = _toDoc(idOrDoc);
+  return JSON.parse(localStorage.getItem(_docKey(doc, 'notes')) || '[]');
+}
+function saveNotes(idOrDoc, arr) {
+  const doc = _toDoc(idOrDoc);
   const json = JSON.stringify(arr);
-  localStorage.setItem('notes_'+id, json);
-  const a = articles.find(x => x.id === id);
-  if (a) a.notes = json;
-  _syncFieldToCloud(id, 'notes', json);
+  localStorage.setItem(_docKey(doc, 'notes'), json);
+  const obj = _docArr(doc).find(x => x.id === doc.id);
+  if (obj) obj.notes = json;
+  _syncFieldToCloud(doc, 'notes', json);
 }
 
 // 螢光筆／筆記雲端同步：debounce 600ms，避免每次按鍵都打後端
-const _syncTimers = {};         // key = `${id}:${field}` → timeout
-function _syncFieldToCloud(id, field, json) {
-  const key = id + ':' + field;
+const _syncTimers = {};
+function _syncFieldToCloud(idOrDoc, field, json) {
+  const doc = _toDoc(idOrDoc);
+  const key = doc.type + ':' + doc.id + ':' + field;
   clearTimeout(_syncTimers[key]);
   _syncTimers[key] = setTimeout(() => {
     delete _syncTimers[key];
-    _apiPatch(`/articles/${id}`, { [field]: json }).catch(err => {
-      console.warn('[sync] failed', field, id, err);
-      // 失敗就靜默重試一次
-      setTimeout(() => _apiPatch(`/articles/${id}`, { [field]: json }).catch(()=>{}), 4000);
+    _apiPatch(_docEndpoint(doc), { [field]: json }).catch(err => {
+      console.warn('[sync] failed', field, doc, err);
+      setTimeout(() => _apiPatch(_docEndpoint(doc), { [field]: json }).catch(()=>{}), 4000);
     });
   }, 600);
 }
 
-// 開啟文章時同步：雲端有資料 → 蓋過本地；雲端空但本地有 → 上傳
-function _syncHlNotesOnOpen(a) {
-  if (!a) return;
-  const id = a.id;
+// 開啟文件時同步：雲端有資料 → 蓋過本地；雲端空但本地有 → 上傳
+function _syncHlNotesOnOpen(idOrDoc, obj) {
+  const doc = _toDoc(idOrDoc);
+  // obj 沒傳就 fallback 從陣列找
+  if (!obj) obj = _docArr(doc).find(x => x.id === doc.id);
+  if (!obj) return;
   for (const field of ['highlights', 'notes']) {
-    const lsKey = (field === 'highlights' ? 'hl_' : 'notes_') + id;
-    const cloud = a[field];                   // 從 server 拿來的字串
+    const lsKey = _docKey(doc, field === 'highlights' ? 'hl' : 'notes');
+    const cloud = obj[field];
     const local = localStorage.getItem(lsKey);
-
-    let cloudArr = [];
-    try { cloudArr = cloud ? JSON.parse(cloud) : []; } catch(e) { cloudArr = []; }
-    let localArr = [];
-    try { localArr = local ? JSON.parse(local) : []; } catch(e) { localArr = []; }
-
+    let cloudArr = [], localArr = [];
+    try { cloudArr = cloud ? JSON.parse(cloud) : []; } catch(e) {}
+    try { localArr = local ? JSON.parse(local) : []; } catch(e) {}
     if (cloudArr.length) {
-      // 雲端有資料 → 以雲端為準（多裝置同步來源）
       localStorage.setItem(lsKey, cloud);
     } else if (localArr.length) {
-      // 雲端空但本地有 → 一次性回填到雲端
-      _syncFieldToCloud(id, field, local);
+      _syncFieldToCloud(doc, field, local);
     }
   }
 }
@@ -4541,10 +4750,13 @@ let _noteImages = [];      // images for new note input
 let _editImages = [];      // images added during edit
 
 function renderNotes() {
-  const notes = getNotes(currentId);
+  const doc = getCurrentDoc();
+  const notes = doc ? getNotes(doc) : [];
   const list  = document.getElementById('notes-list');
-  const badge = document.getElementById('notes-badge');
-  if (badge) badge.textContent = notes.length ? `(${notes.length}) ` : '';
+  ['notes-badge', 'rnotes-badge'].forEach(id => {
+    const b = document.getElementById(id);
+    if (b) b.textContent = notes.length ? `(${notes.length}) ` : '';
+  });
   if (!list) return;
   if (!notes.length) {
     list.innerHTML = '<div class="notes-empty">還沒有筆記<br><span style="font-size:20px;opacity:0.4">📝</span></div>';
@@ -4613,7 +4825,8 @@ function renderNotes() {
   if (_editingNoteId) {
     const ta = document.getElementById(`edit-ta-${_editingNoteId}`);
     if (ta) {
-      const notes2 = getNotes(currentId);
+      const doc2 = getCurrentDoc();
+      const notes2 = doc2 ? getNotes(doc2) : [];
       const note2 = notes2.find(n => n.id === _editingNoteId);
       if (note2) ta.value = note2.text;
       setTimeout(() => ta?.focus(), 30);
@@ -4622,7 +4835,8 @@ function renderNotes() {
 }
 
 function startEditNote(id) {
-  const note = getNotes(currentId).find(n => n.id === id);
+  const doc = getCurrentDoc(); if (!doc) return;
+  const note = getNotes(doc).find(n => n.id === id);
   if (!note) return;
   _editingNoteId = id;
   _editFmt = note.format || 'txt';
@@ -4641,24 +4855,26 @@ function saveNoteEdit(id) {
   const ta = document.getElementById(`edit-ta-${id}`);
   const text = ta?.value.trim();
   if (!text) { ta?.focus(); return; }
-  const notes = getNotes(currentId);
+  const doc = getCurrentDoc(); if (!doc) return;
+  const notes = getNotes(doc);
   const note = notes.find(n => n.id === id);
   if (!note) return;
   note.text = text;
   note.format = _editFmt;
   note.images = [...(note.images||[]), ..._editImages];
-  saveNotes(currentId, notes);
+  saveNotes(doc, notes);
   _editingNoteId = null; _editImages = [];
   renderNotes();
   toast('✓ 筆記已更新');
 }
 
 function toggleNoteFormat(id) {
-  const notes = getNotes(currentId);
+  const doc = getCurrentDoc(); if (!doc) return;
+  const notes = getNotes(doc);
   const note = notes.find(n => n.id === id);
   if (!note) return;
   note.format = (note.format||'txt') === 'txt' ? 'md' : 'txt';
-  saveNotes(currentId, notes);
+  saveNotes(doc, notes);
   renderNotes();
 }
 
@@ -4724,14 +4940,16 @@ function addNote() {
   const input = document.getElementById('note-input');
   const text = input.value.trim();
   if (!text && !_noteImages.length) { input.focus(); return; }
-  const notes = getNotes(currentId);
+  const doc = getCurrentDoc();
+  if (!doc) { toast('請先開啟一篇文章或報告'); return; }
+  const notes = getNotes(doc);
   notes.unshift({
     id: Date.now().toString(36)+Math.random().toString(36).slice(2,4),
     text: text || ' ', format: _noteFmt,
     images: [..._noteImages],
     createdAt: Date.now()
   });
-  saveNotes(currentId, notes);
+  saveNotes(doc, notes);
   input.value = '';
   _noteImages = [];
   renderNoteInputImgs();
@@ -4743,7 +4961,8 @@ function deleteNote(id) {
   const span = document.querySelector(`.note-anchor[data-note-id="${id}"]`);
   if (span) span.replaceWith(document.createTextNode(span.textContent));
   if (_editingNoteId === id) { _editingNoteId = null; _editImages = []; }
-  saveNotes(currentId, getNotes(currentId).filter(n => n.id !== id));
+  const doc = getCurrentDoc(); if (!doc) return;
+  saveNotes(doc, getNotes(doc).filter(n => n.id !== id));
   renderNotes();
 }
 
@@ -4897,21 +5116,22 @@ document.addEventListener('keydown', function(e) {
 })();
 
 // ── 1. TOC ────────────────────────────────────────────────────
-function buildTOC() {
-  const content = document.getElementById('view-content');
+function buildTOC(contentId = 'view-content') {
+  const content = document.getElementById(contentId);
   const panel   = document.getElementById('toc-panel');
   const list    = document.getElementById('toc-list');
   if (!content || !panel) return;
   const headings = [...content.querySelectorAll('h1,h2,h3,h4')];
   if (headings.length < 2) { panel.classList.remove('visible'); return; }
   list.innerHTML = '';
+  // 找包住此 content 的 .article-scroll-body（無論是 article-view 或 report-view）
+  const scrollBody = content.closest('.article-scroll-body');
   headings.forEach((h, i) => {
     if (!h.id) h.id = 'toc-' + i;
     const div = document.createElement('div');
     div.className = 'toc-item ' + h.tagName.toLowerCase();
     div.textContent = h.textContent.trim();
     div.onclick = () => {
-      const scrollBody = document.querySelector('#article-view .article-scroll-body');
       if (scrollBody) {
         const top = h.offsetTop - scrollBody.offsetTop;
         scrollBody.scrollTo({ top, behavior: 'smooth' });
@@ -4945,12 +5165,13 @@ document.addEventListener('keydown', e => {
 
 // ── 5. Export notes + highlights ──────────────────────────────
 function exportNotes() {
-  const a = articles.find(x => x.id === currentId);
-  if (!a) return;
-  const hls   = getHls(currentId);
-  const notes = getNotes(currentId);
-  if (!hls.length && !notes.length) { toast('此文章尚無筆記或標記'); return; }
-  let md = `# ${a.title}\n\n`;
+  const doc = getCurrentDoc();
+  if (!doc) { toast('請先開啟一篇文章或報告'); return; }
+  const title = doc.type === 'report' ? (doc.obj.company || '報告') : (doc.obj.title || '文章');
+  const hls   = getHls(doc);
+  const notes = getNotes(doc);
+  if (!hls.length && !notes.length) { toast('此文件尚無筆記或標記'); return; }
+  let md = `# ${title}\n\n`;
   if (hls.length) {
     md += `## 🖊 螢光筆標記\n`;
     hls.forEach(h => { md += `- 「${h.text}」\n`; });
@@ -4967,7 +5188,7 @@ function exportNotes() {
   }
   const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
   const url  = URL.createObjectURL(blob);
-  const el   = Object.assign(document.createElement('a'), { href: url, download: `${a.title}-筆記.md` });
+  const el   = Object.assign(document.createElement('a'), { href: url, download: `${title}-筆記.md` });
   document.body.appendChild(el); el.click(); el.remove();
   URL.revokeObjectURL(url);
   toast('✓ 已匯出 Markdown');
@@ -4990,15 +5211,27 @@ function searchAllNotes(q) {
   const ql = q.toLowerCase();
   const hits = [];
   articles.forEach(a => {
-    getNotes(a.id).forEach(n => {
-      if (n.text.toLowerCase().includes(ql)) hits.push({ a, n });
+    getNotes({type:'article', id: a.id}).forEach(n => {
+      if (n.text.toLowerCase().includes(ql)) hits.push({ type:'article', obj: a, n });
     });
   });
-  res.innerHTML = hits.slice(0, 30).map(({ a, n }) => `
-    <div class="nsp-item" onclick="closeNotesSearch();viewArticle(${a.id});setTimeout(()=>{if(!document.getElementById('notes-panel').classList.contains('open'))toggleNotes();},300)">
-      <div class="nsp-item-title">${esc(a.title)}</div>
-      <div class="nsp-item-text">${esc((n.anchorText ? '🔗 ' + n.anchorText.slice(0,20) + '  ' : '') + n.text.slice(0,80))}${n.text.length > 80 ? '…' : ''}</div>
-    </div>`).join('') || '<div style="color:var(--text-faint);font-size:12px;padding:12px 14px">找不到符合的筆記</div>';
+  reports.forEach(r => {
+    getNotes({type:'report', id: r.id}).forEach(n => {
+      if (n.text.toLowerCase().includes(ql)) hits.push({ type:'report', obj: r, n });
+    });
+  });
+  res.innerHTML = hits.slice(0, 30).map(({ type, obj, n }) => {
+    const title = type === 'report' ? (obj.company || '報告') : (obj.title || '文章');
+    const badge = type === 'report' ? '📊 報告' : '📰 文章';
+    const onclick = type === 'report'
+      ? `closeNotesSearch();viewReport(${obj.id});setTimeout(()=>{if(!document.getElementById('notes-panel').classList.contains('open'))toggleNotes();},300)`
+      : `closeNotesSearch();viewArticle(${obj.id});setTimeout(()=>{if(!document.getElementById('notes-panel').classList.contains('open'))toggleNotes();},300)`;
+    return `
+      <div class="nsp-item" onclick="${onclick}">
+        <div class="nsp-item-title"><span style="font-size:10px;color:var(--text-faint);margin-right:6px">${badge}</span>${esc(title)}</div>
+        <div class="nsp-item-text">${esc((n.anchorText ? '🔗 ' + n.anchorText.slice(0,20) + '  ' : '') + n.text.slice(0,80))}${n.text.length > 80 ? '…' : ''}</div>
+      </div>`;
+  }).join('') || '<div style="color:var(--text-faint);font-size:12px;padding:12px 14px">找不到符合的筆記</div>';
 }
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeNotesSearch();
