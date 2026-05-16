@@ -1680,6 +1680,55 @@ body.reading-fullscreen #main { margin-left: 0 !important; }
   width: 500px; max-width: 90vw; max-height: 85vh; overflow-y: auto; position: relative; }
 body.dark .stats-inner { background: #1e1c1a; }
 
+/* ── 因果循環圖 (CLD) ─────────────────────────────────────────── */
+#cld-panel { position: fixed; top:0; left:0; right:0; bottom:0;
+  background: rgba(0,0,0,.55); z-index: 720; display: none;
+  align-items: center; justify-content: center; }
+#cld-panel.open { display: flex; }
+.cld-inner { background: var(--bg-darker); border-radius: 16px;
+  width: 900px; max-width: 94vw; height: 640px; max-height: 90vh;
+  display: flex; flex-direction: column; overflow: hidden; position: relative;
+  box-shadow: 0 20px 64px rgba(0,0,0,.3); }
+body.dark .cld-inner { background: #1e1c1a; }
+.cld-head { display: flex; align-items: center; gap: 10px;
+  padding: 14px 18px; border-bottom: 1px solid var(--border-dark); flex-shrink: 0; }
+.cld-head h2 { margin: 0; font-size: 15px; font-weight: 700; color: var(--text-main); }
+.cld-head .cld-spacer { flex: 1; }
+.cld-btn { background: var(--bg-light); border: 1px solid var(--border-dark);
+  border-radius: 7px; padding: 6px 12px; font-size: 12px; cursor: pointer;
+  color: var(--text-muted); }
+.cld-btn:hover { border-color: var(--accent); color: var(--accent); }
+.cld-btn.primary { background: var(--accent); color: #1a1510; border-color: var(--accent); }
+.cld-btn.primary:hover { background: #d9bc82; color: #1a1510; }
+.cld-btn:disabled { opacity: .5; cursor: not-allowed; }
+.cld-close { background: none; border: none; font-size: 20px; cursor: pointer;
+  color: var(--text-muted); line-height: 1; padding: 0 4px; }
+.cld-body { flex: 1; overflow: auto; position: relative; background: var(--bg-main); }
+body.dark .cld-body { background: #161412; }
+.cld-empty { position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 14px; text-align: center;
+  color: var(--text-muted); font-size: 13px; padding: 24px; }
+.cld-empty .cld-big { font-size: 40px; opacity: .35; }
+.cld-svg { display: block; margin: 0 auto; }
+.cld-node rect { fill: var(--bg-darker); stroke: #5b9bd5; stroke-width: 1.6; }
+body.dark .cld-node rect { fill: #252320; }
+.cld-node text { fill: var(--text-main); font-size: 12px; font-weight: 500;
+  font-family: 'Segoe UI','Noto Sans TC','PingFang TC','微軟正黑體',sans-serif; }
+.cld-edge { fill: none; stroke: #9a9a9a; stroke-width: 1.5; }
+.cld-edge-pos { stroke: #5b9bd5; }
+.cld-edge-neg { stroke: #d56b6b; }
+.cld-polarity { font-size: 13px; font-weight: 700;
+  font-family: 'Segoe UI',sans-serif; }
+.cld-loop-badge text { font-size: 13px; font-weight: 800; }
+.cld-loop-label { font-size: 10px; fill: var(--text-muted); }
+.cld-legend { display: flex; gap: 16px; padding: 8px 18px; flex-shrink: 0;
+  border-top: 1px solid var(--border-dark); font-size: 11px; color: var(--text-muted);
+  flex-wrap: wrap; }
+.cld-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.cld-spinner { width: 26px; height: 26px; border: 3px solid var(--border);
+  border-top-color: var(--accent); border-radius: 50%; animation: cld-spin .8s linear infinite; }
+@keyframes cld-spin { to { transform: rotate(360deg); } }
+
 /* ── Notes search panel ──────────────────────────────────────── */
 #notes-search-panel { position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
   width: 440px; max-height: 70vh; background: var(--bg-darker);
@@ -2083,6 +2132,7 @@ input:-webkit-autofill:focus {
         <button class="btn-duplicate" onclick="duplicateArticle(currentId)">⎘ 複製</button>
         <button class="btn-edit" id="btn-highlight" onclick="toggleHighlighter()" title="螢光筆標記選取文字">🖊 螢光筆</button>
         <button class="btn-edit" id="btn-notes" onclick="toggleNotes()" title="筆記">📝 <span id="notes-badge"></span>筆記</button>
+        <button class="btn-edit" id="btn-cld" onclick="openCLD()" title="因果循環圖（AI 分析文章）">🔄 因果圖</button>
         <div style="display:flex;gap:2px;margin-left:4px;flex-shrink:0">
           <button class="btn-edit" onclick="changeFontSize(-1)" title="縮小字體" style="padding:4px 8px;font-weight:600">A−</button>
           <button class="btn-edit" onclick="changeFontSize(1)"  title="放大字體" style="padding:4px 8px;font-weight:600">A+</button>
@@ -5381,8 +5431,173 @@ async function doFetchUrl() {
   finally { btn.textContent = '抓取'; btn.disabled = false; }
 }
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { hideFetchUrlDialog(); closeStats(); }
+  if (e.key === 'Escape') { hideFetchUrlDialog(); closeStats(); closeCLD(); }
 });
+
+// ── 因果循環圖 (CLD) ──────────────────────────────────────────
+function openCLD() {
+  if (!currentId) { toast('請先開啟一篇文章'); return; }
+  const a = articles.find(x => x.id === currentId);
+  if (!a) return;
+  document.getElementById('cld-panel').classList.add('open');
+  let cld = null;
+  try { cld = a.cld ? JSON.parse(a.cld) : null; } catch(e) {}
+  if (cld && cld.nodes && cld.nodes.length) {
+    renderCLD(cld);
+  } else {
+    showCLDEmpty();
+  }
+}
+function closeCLD() {
+  document.getElementById('cld-panel').classList.remove('open');
+}
+function showCLDEmpty() {
+  document.getElementById('cld-regen-btn').style.display = 'none';
+  document.getElementById('cld-download-btn').style.display = 'none';
+  document.getElementById('cld-body').innerHTML =
+    `<div class="cld-empty">
+       <div class="cld-big">🔄</div>
+       <div>還沒有因果循環圖<br>AI 會分析這篇文章，萃取出關鍵變數與因果關係</div>
+       <button class="cld-btn primary" onclick="generateCLD()">✨ 用 AI 生成因果圖</button>
+     </div>`;
+}
+function showCLDLoading() {
+  document.getElementById('cld-body').innerHTML =
+    `<div class="cld-empty">
+       <div class="cld-spinner"></div>
+       <div>AI 正在分析文章、建構因果關係…<br><span style="font-size:11px;opacity:.7">約需 10–20 秒</span></div>
+     </div>`;
+}
+async function generateCLD() {
+  if (!currentId) return;
+  showCLDLoading();
+  try {
+    const res = await fetch(`${API_BASE}/articles/${currentId}/generate-cld`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) {
+      const msg = data && data.detail ? data.detail : ('HTTP ' + res.status);
+      document.getElementById('cld-body').innerHTML =
+        `<div class="cld-empty"><div class="cld-big">⚠️</div>
+         <div>生成失敗：${esc(String(msg))}</div>
+         <button class="cld-btn" onclick="showCLDEmpty()">返回</button></div>`;
+      return;
+    }
+    // 寫回記憶體 + 本地（伺服器端已存 cld 欄位）
+    const a = articles.find(x => x.id === currentId);
+    if (a) a.cld = JSON.stringify(data);
+    renderCLD(data);
+    toast('✓ 因果圖已生成');
+  } catch(e) {
+    document.getElementById('cld-body').innerHTML =
+      `<div class="cld-empty"><div class="cld-big">⚠️</div>
+       <div>連線失敗：${esc(e.message||'')}</div>
+       <button class="cld-btn" onclick="showCLDEmpty()">返回</button></div>`;
+  }
+}
+
+// 環狀佈局 + SVG 繪製
+function renderCLD(cld) {
+  document.getElementById('cld-regen-btn').style.display = '';
+  document.getElementById('cld-download-btn').style.display = '';
+  const nodes = (cld.nodes || []).slice(0, 16);
+  const edges = cld.edges || [];
+  const loops = cld.loops || [];
+  if (!nodes.length) { showCLDEmpty(); return; }
+
+  const W = 860, H = 540, cx = W/2, cy = H/2;
+  const R = Math.min(W, H) / 2 - 110;
+  const pos = {};
+  nodes.forEach((n, i) => {
+    const ang = -Math.PI/2 + (2*Math.PI*i)/nodes.length;
+    pos[n.id] = { x: cx + R*Math.cos(ang), y: cy + R*Math.sin(ang),
+                  label: n.label || n.id };
+  });
+
+  const nodeW = 104, nodeH = 38;
+  // 量測文字寬度用：簡單以字數估
+  function boxW(label) { return Math.max(nodeW, Math.min(180, label.length * 15 + 26)); }
+
+  let svg = `<svg class="cld-svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  svg += `<defs>
+    <marker id="cld-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#9a9a9a"/></marker>
+    <marker id="cld-arrow-pos" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5b9bd5"/></marker>
+    <marker id="cld-arrow-neg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#d56b6b"/></marker>
+  </defs>`;
+
+  // edges（曲線，避開節點：起訖點往節點邊緣縮）
+  edges.forEach(e => {
+    const a = pos[e.from], b = pos[e.to];
+    if (!a || !b) return;
+    const neg = e.polarity === '-';
+    const cls = neg ? 'cld-edge cld-edge-neg' : 'cld-edge cld-edge-pos';
+    const marker = neg ? 'cld-arrow-neg' : 'cld-arrow-pos';
+    // 縮短到節點邊緣
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const ux = dx/len, uy = dy/len;
+    const sx = a.x + ux*54, sy = a.y + uy*24;
+    const ex = b.x - ux*58, ey = b.y - uy*26;
+    // 控制點：往圓心反方向偏，做出弧線
+    const mx = (sx+ex)/2, my = (sy+ey)/2;
+    const ox = (mx - cx), oy = (my - cy);
+    const ol = Math.hypot(ox, oy) || 1;
+    const bend = 38;
+    const qx = mx + (ox/ol)*bend, qy = my + (oy/ol)*bend;
+    svg += `<path class="${cls}" d="M${sx},${sy} Q${qx},${qy} ${ex},${ey}" marker-end="url(#${marker})"/>`;
+    // 極性標記在曲線中點
+    svg += `<text class="cld-polarity" x="${qx}" y="${qy}" text-anchor="middle" dy="-3"
+             fill="${neg?'#d56b6b':'#5b9bd5'}">${neg?'−':'+'}</text>`;
+  });
+
+  // nodes
+  nodes.forEach(n => {
+    const p = pos[n.id];
+    const w = boxW(p.label), h = nodeH;
+    svg += `<g class="cld-node">
+      <rect x="${p.x-w/2}" y="${p.y-h/2}" width="${w}" height="${h}" rx="19"/>
+      <text x="${p.x}" y="${p.y}" text-anchor="middle" dominant-baseline="central">${escSvg(p.label)}</text>
+    </g>`;
+  });
+
+  // loop badges：放在所有相關節點的形心
+  loops.slice(0, 6).forEach(lp => {
+    const ids = (lp.nodes || []).filter(id => pos[id]);
+    if (ids.length < 2) return;
+    let lx = 0, ly = 0;
+    ids.forEach(id => { lx += pos[id].x; ly += pos[id].y; });
+    lx /= ids.length; ly /= ids.length;
+    const isR = (lp.type || 'R').toUpperCase() === 'R';
+    const col = isR ? '#7c3aed' : '#c0392b';
+    svg += `<g class="cld-loop-badge">
+      <circle cx="${lx}" cy="${ly}" r="16" fill="none" stroke="${col}" stroke-width="1.6" stroke-dasharray="3 2"/>
+      <text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="central" fill="${col}">${isR?'R':'B'}</text>
+      <text class="cld-loop-label" x="${lx}" y="${ly+30}" text-anchor="middle">${escSvg(lp.label||'')}</text>
+    </g>`;
+  });
+
+  svg += `</svg>`;
+  document.getElementById('cld-body').innerHTML = svg;
+}
+
+// SVG 文字逸出
+function escSvg(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function downloadCLD() {
+  const svgEl = document.querySelector('#cld-body svg');
+  if (!svgEl) return;
+  const a = articles.find(x => x.id === currentId);
+  const name = (a && a.title ? a.title : '因果圖').slice(0, 40);
+  const blob = new Blob([svgEl.outerHTML], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const el = Object.assign(document.createElement('a'), { href: url, download: `${name}-因果圖.svg` });
+  document.body.appendChild(el); el.click(); el.remove();
+  URL.revokeObjectURL(url);
+}
 </script>
 <!-- Notes floating window -->
 <div id="notes-panel">
@@ -5469,6 +5684,26 @@ document.addEventListener('keydown', e => {
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn-cancel" onclick="hideFetchUrlDialog()">取消</button>
       <button class="btn-save" id="fetch-url-btn" onclick="doFetchUrl()">抓取</button>
+    </div>
+  </div>
+</div>
+
+<!-- 因果循環圖 (CLD) -->
+<div id="cld-panel">
+  <div class="cld-inner">
+    <div class="cld-head">
+      <h2>🔄 因果循環圖</h2>
+      <span class="cld-spacer"></span>
+      <button class="cld-btn" id="cld-regen-btn" onclick="generateCLD()" style="display:none">重新生成</button>
+      <button class="cld-btn" id="cld-download-btn" onclick="downloadCLD()" style="display:none">下載 SVG</button>
+      <button class="cld-close" onclick="closeCLD()">×</button>
+    </div>
+    <div class="cld-body" id="cld-body"></div>
+    <div class="cld-legend">
+      <span><b style="color:#5b9bd5">→ +</b> 同向（增→增）</span>
+      <span><b style="color:#d56b6b">→ −</b> 反向（增→減）</span>
+      <span><b style="color:#7c3aed">R</b> 增強迴路</span>
+      <span><b style="color:#c0392b">B</b> 調節迴路</span>
     </div>
   </div>
 </div>
