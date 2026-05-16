@@ -481,21 +481,12 @@ body.dark #main { background: var(--bg-light); }
   line-height: 1.9;
   max-width: 680px;
 }
-/* 閱讀欄置中：閱讀區變寬時，文章維持 680px 並水平置中 */
-.article-meta-bar,
-.article-title-display,
-.image-gallery,
+/* 閱讀欄置中：只有文章內文水平置中，標題/meta/圖庫維持靠左 */
 .article-content-display,
-.report-content-display,
-.report-ticker,
-#view-image,
-#report-view-image {
+.report-content-display {
   margin-left: auto;
   margin-right: auto;
 }
-.article-meta-bar,
-.article-title-display,
-.report-ticker { max-width: 680px; }
 #view-image {
   max-width: 680px;
   width: 100%;
