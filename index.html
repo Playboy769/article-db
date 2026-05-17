@@ -1711,17 +1711,18 @@ body.dark .cld-body { background: #161412; }
   color: var(--text-muted); font-size: 13px; padding: 24px; }
 .cld-empty .cld-big { font-size: 40px; opacity: .35; }
 .cld-svg { display: block; margin: 0 auto; }
-.cld-node rect { fill: var(--bg-darker); stroke: #5b9bd5; stroke-width: 1.6; }
-body.dark .cld-node rect { fill: #252320; }
-.cld-node text { fill: var(--text-main); font-size: 12px; font-weight: 500;
+.cld-node rect { fill: #ffffff; stroke: #c4cad2; stroke-width: 1.25; }
+.cld-node text { fill: #2c2a27; font-size: 12.5px; font-weight: 600;
   font-family: 'Segoe UI','Noto Sans TC','PingFang TC','微軟正黑體',sans-serif; }
-.cld-edge { fill: none; stroke: #9a9a9a; stroke-width: 1.5; }
-.cld-edge-pos { stroke: #5b9bd5; }
-.cld-edge-neg { stroke: #d56b6b; }
-.cld-polarity { font-size: 13px; font-weight: 700;
+body.dark .cld-node rect { fill: #2c2a27; stroke: #4d4842; }
+body.dark .cld-node text { fill: #ece7dd; }
+.cld-node:hover rect { stroke: var(--accent); }
+.cld-edge { fill: none; stroke: #97a0ab; stroke-width: 1.5; }
+body.dark .cld-edge { stroke: #6b7178; }
+.cld-polarity { font-size: 12px; font-weight: 800;
   font-family: 'Segoe UI',sans-serif; }
-.cld-loop-badge text { font-size: 13px; font-weight: 800; }
-.cld-loop-label { font-size: 10px; fill: var(--text-muted); }
+.cld-loop-badge text.cld-loop-rb { font-size: 12px; font-weight: 800; }
+.cld-loop-label { font-size: 10px; fill: var(--text-muted); font-weight: 600; }
 .cld-legend { display: flex; gap: 16px; padding: 8px 18px; flex-shrink: 0;
   border-top: 1px solid var(--border-dark); font-size: 11px; color: var(--text-muted);
   flex-wrap: wrap; }
@@ -5601,40 +5602,42 @@ function renderCLD() {
 
   let svg = `<svg class="cld-svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
   svg += `<defs>
-    <marker id="cld-arrow-pos" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M0,0 L10,5 L0,10 z" fill="#5b9bd5"/></marker>
-    <marker id="cld-arrow-neg" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M0,0 L10,5 L0,10 z" fill="#d56b6b"/></marker>
+    <marker id="cld-arrow" viewBox="0 0 10 10" refX="8.4" refY="5" markerWidth="7.5" markerHeight="7.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#97a0ab"/></marker>
+    <marker id="cld-loop-tip-r" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1f9d72"/></marker>
+    <marker id="cld-loop-tip-b" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#d06a2c"/></marker>
+    <filter id="cld-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#000" flood-opacity="0.14"/>
+    </filter>
   </defs>`;
 
-  // edges：每條都朝「行進方向的左側」彎，讓 A→B 與 B→A 自然分開、不重疊
+  // edges：統一灰色細線，朝行進方向左側彎，A→B 與 B→A 自然分開
   edges.forEach(e => {
     const a = pos[e.from], b = pos[e.to];
     if (!a || !b) return;
     const neg = e.polarity === '-';
-    const cls = neg ? 'cld-edge cld-edge-neg' : 'cld-edge cld-edge-pos';
-    const marker = neg ? 'cld-arrow-neg' : 'cld-arrow-pos';
     const dx = b.x - a.x, dy = b.y - a.y;
     const len = Math.hypot(dx, dy) || 1;
     const ux = dx/len, uy = dy/len;
-    // 起訖縮到節點邊緣外一點
     const sx = a.x + ux*56, sy = a.y + uy*26;
     const ex = b.x - ux*60, ey = b.y - uy*28;
-    // 控制點：垂直行進方向偏移（左側），偏移量隨弦長增加但有上限
-    const px = -uy, py = ux;
+    const px = -uy, py = ux;                       // 行進方向左側
     const bow = Math.min(80, Math.max(22, len * 0.16));
     const mx = (sx+ex)/2, my = (sy+ey)/2;
     const qx = mx + px*bow, qy = my + py*bow;
-    svg += `<path class="${cls}" d="M${sx},${sy} Q${qx},${qy} ${ex},${ey}" marker-end="url(#${marker})"/>`;
-    // 極性標記放在曲線實際中點（二次貝茲 t=0.5）
-    const lx = 0.25*sx + 0.5*qx + 0.25*ex;
-    const ly = 0.25*sy + 0.5*qy + 0.25*ey;
-    svg += `<circle cx="${lx}" cy="${ly}" r="9" fill="${neg?'#fdecec':'#e8f1fb'}" stroke="${neg?'#d56b6b':'#5b9bd5'}" stroke-width="1"/>`;
+    svg += `<path class="cld-edge" d="M${sx},${sy} Q${qx},${qy} ${ex},${ey}" marker-end="url(#cld-arrow)"/>`;
+    // 極性 +/− 標在靠近箭頭端（二次貝茲 t≈0.82），這是標準 CLD 慣例
+    const t = 0.82, mt = 1 - t;
+    const lx = mt*mt*sx + 2*mt*t*qx + t*t*ex;
+    const ly = mt*mt*sy + 2*mt*t*qy + t*t*ey;
+    svg += `<circle cx="${lx}" cy="${ly}" r="9" fill="#fff" stroke="${neg?'#d56b6b':'#1f9d72'}" stroke-width="1.3"/>`;
     svg += `<text class="cld-polarity" x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="central"
-             fill="${neg?'#d56b6b':'#5b9bd5'}">${neg?'−':'+'}</text>`;
+             fill="${neg?'#d56b6b':'#1f9d72'}">${neg?'−':'+'}</text>`;
   });
 
-  // loop badges：放在相關節點形心
+  // loop badges：標準 CLD 的圓形迴轉箭頭符號
   loops.slice(0, 5).forEach(lp => {
     const ids = (lp.nodes || []).filter(id => pos[id]);
     if (ids.length < 2) return;
@@ -5642,11 +5645,18 @@ function renderCLD() {
     ids.forEach(id => { lx += pos[id].x; ly += pos[id].y; });
     lx /= ids.length; ly /= ids.length;
     const isR = (lp.type || 'R').toUpperCase() === 'R';
-    const col = isR ? '#7c3aed' : '#c0392b';
+    const col = isR ? '#1f9d72' : '#d06a2c';
+    const r = 17;
+    // 約 290° 的圓弧 + 末端箭頭，做出「迴圈」符號
+    const a0 = -0.5, a1 = a0 + Math.PI*1.62;
+    const sx = lx + r*Math.cos(a0), sy = ly + r*Math.sin(a0);
+    const ex = lx + r*Math.cos(a1), ey = ly + r*Math.sin(a1);
+    const tip = isR ? 'cld-loop-tip-r' : 'cld-loop-tip-b';
     svg += `<g class="cld-loop-badge">
-      <circle cx="${lx}" cy="${ly}" r="15" fill="${isR?'#f3eefd':'#fbeceb'}" stroke="${col}" stroke-width="1.6" stroke-dasharray="3 2"/>
-      <text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="central" fill="${col}">${isR?'R':'B'}</text>
-      <text class="cld-loop-label" x="${lx}" y="${ly+28}" text-anchor="middle">${escSvg(lp.label||'')}</text>
+      <path d="M${sx},${sy} A${r},${r} 0 1 1 ${ex},${ey}" fill="none"
+            stroke="${col}" stroke-width="1.8" marker-end="url(#${tip})"/>
+      <text class="cld-loop-rb" x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="central" fill="${col}">${isR?'R':'B'}</text>
+      <text class="cld-loop-label" x="${lx}" y="${ly+30}" text-anchor="middle">${escSvg(lp.label||'')}</text>
     </g>`;
   });
 
@@ -5657,7 +5667,7 @@ function renderCLD() {
     const w = boxW(p.label), h = nodeH;
     const sel = (_cldConnectFrom === n.id);
     svg += `<g class="cld-node" data-node-id="${escSvg(n.id)}" style="cursor:${editing?'pointer':'default'}">
-      <rect x="${p.x-w/2}" y="${p.y-h/2}" width="${w}" height="${h}" rx="20"
+      <rect x="${p.x-w/2}" y="${p.y-h/2}" width="${w}" height="${h}" rx="9" filter="url(#cld-shadow)"
             ${sel ? 'stroke="#7c3aed" stroke-width="2.5"' : ''}/>
       <text x="${p.x}" y="${p.y}" text-anchor="middle" dominant-baseline="central">${escSvg(p.label)}</text>
     </g>`;
@@ -5796,10 +5806,10 @@ function downloadCLD() {
     </div>
     <div class="cld-body" id="cld-body"></div>
     <div class="cld-legend">
-      <span><b style="color:#5b9bd5">→ +</b> 同向（增→增）</span>
-      <span><b style="color:#d56b6b">→ −</b> 反向（增→減）</span>
-      <span><b style="color:#7c3aed">R</b> 增強迴路</span>
-      <span><b style="color:#c0392b">B</b> 調節迴路</span>
+      <span><b style="color:#1f9d72">⊕ +</b> 同向（增→增）</span>
+      <span><b style="color:#d56b6b">⊖ −</b> 反向（增→減）</span>
+      <span><b style="color:#1f9d72">↻ R</b> 增強迴路</span>
+      <span><b style="color:#d06a2c">↻ B</b> 調節迴路</span>
     </div>
   </div>
 </div>
