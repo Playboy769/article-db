@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>文章資料庫</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cg fill='none' stroke='%232a2520' stroke-width='2.4' stroke-linecap='round'%3E%3Cellipse cx='16' cy='7' rx='10' ry='4'/%3E%3Cpath d='M6 7v18c0 2.2 4.5 4 10 4s10-1.8 10-4V7'/%3E%3Cpath d='M6 13c0 2.2 4.5 4 10 4s10-1.8 10-4'/%3E%3Cpath d='M6 19c0 2.2 4.5 4 10 4s10-1.8 10-4'/%3E%3C/g%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap" rel="stylesheet">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -5435,25 +5436,36 @@ document.addEventListener('keydown', e => {
 });
 
 // ── 因果循環圖 (CLD) ──────────────────────────────────────────
+let _cldData = null;          // 目前的 {nodes, edges, loops}
+let _cldMode = 'view';        // 'view' | 'connect' | 'delete'
+let _cldConnectFrom = null;   // 連線模式下已選的來源節點 id
+
 function openCLD() {
   if (!currentId) { toast('請先開啟一篇文章'); return; }
   const a = articles.find(x => x.id === currentId);
   if (!a) return;
   document.getElementById('cld-panel').classList.add('open');
+  _cldMode = 'view'; _cldConnectFrom = null;
   let cld = null;
   try { cld = a.cld ? JSON.parse(a.cld) : null; } catch(e) {}
   if (cld && cld.nodes && cld.nodes.length) {
-    renderCLD(cld);
+    _cldData = cld;
+    renderCLD();
   } else {
+    _cldData = null;
     showCLDEmpty();
   }
 }
 function closeCLD() {
   document.getElementById('cld-panel').classList.remove('open');
 }
+function _cldHeaderBtns(show) {
+  ['cld-regen-btn','cld-download-btn','cld-addnode-btn','cld-connect-btn','cld-delete-btn']
+    .forEach(id => { const b = document.getElementById(id); if (b) b.style.display = show ? '' : 'none'; });
+}
 function showCLDEmpty() {
-  document.getElementById('cld-regen-btn').style.display = 'none';
-  document.getElementById('cld-download-btn').style.display = 'none';
+  _cldHeaderBtns(false);
+  document.getElementById('cld-hint').textContent = '';
   document.getElementById('cld-body').innerHTML =
     `<div class="cld-empty">
        <div class="cld-big">🔄</div>
@@ -5462,6 +5474,7 @@ function showCLDEmpty() {
      </div>`;
 }
 function showCLDLoading() {
+  _cldHeaderBtns(false);
   document.getElementById('cld-body').innerHTML =
     `<div class="cld-empty">
        <div class="cld-spinner"></div>
@@ -5482,10 +5495,11 @@ async function generateCLD() {
          <button class="cld-btn" onclick="showCLDEmpty()">返回</button></div>`;
       return;
     }
-    // 寫回記憶體 + 本地（伺服器端已存 cld 欄位）
     const a = articles.find(x => x.id === currentId);
     if (a) a.cld = JSON.stringify(data);
-    renderCLD(data);
+    _cldData = data;
+    _cldMode = 'view'; _cldConnectFrom = null;
+    renderCLD();
     toast('✓ 因果圖已生成');
   } catch(e) {
     document.getElementById('cld-body').innerHTML =
@@ -5495,75 +5509,133 @@ async function generateCLD() {
   }
 }
 
+// 把目前 _cldData 存回雲端 + 記憶體
+async function cldSaveData() {
+  if (!currentId || !_cldData) return;
+  const json = JSON.stringify(_cldData);
+  const a = articles.find(x => x.id === currentId);
+  if (a) a.cld = json;
+  try { await _apiPatch(`/articles/${currentId}`, { cld: json }); }
+  catch(e) { console.warn('[cld] save failed', e); }
+}
+
+// 新增節點
+function cldAddNode() {
+  if (!_cldData) return;
+  const label = prompt('新節點名稱（2-6 字最佳）：');
+  if (!label || !label.trim()) return;
+  const id = 'u' + Date.now().toString(36);
+  _cldData.nodes.push({ id, label: label.trim() });
+  renderCLD();
+  cldSaveData();
+  toast('✓ 已新增節點，點「連線」把它接上');
+}
+
+// 切換模式
+function cldSetMode(mode) {
+  _cldMode = (_cldMode === mode) ? 'view' : mode;
+  _cldConnectFrom = null;
+  renderCLD();
+}
+
+// 點到節點時的行為（依模式）
+function cldNodeClick(nodeId) {
+  if (_cldMode === 'delete') {
+    const n = _cldData.nodes.find(x => x.id === nodeId);
+    if (!n) return;
+    if (!confirm(`刪除節點「${n.label}」？相關連結也會一起刪除`)) return;
+    _cldData.nodes = _cldData.nodes.filter(x => x.id !== nodeId);
+    _cldData.edges = _cldData.edges.filter(e => e.from !== nodeId && e.to !== nodeId);
+    if (_cldData.loops) _cldData.loops = _cldData.loops.filter(lp => !(lp.nodes||[]).includes(nodeId));
+    renderCLD();
+    cldSaveData();
+    return;
+  }
+  if (_cldMode === 'connect') {
+    if (!_cldConnectFrom) {
+      _cldConnectFrom = nodeId;
+      renderCLD();
+      return;
+    }
+    if (_cldConnectFrom === nodeId) { _cldConnectFrom = null; renderCLD(); return; }
+    const pol = confirm('這條因果連結的極性？\n\n確定 = 「+」同向（因增→果增）\n取消 = 「−」反向（因增→果減）') ? '+' : '-';
+    _cldData.edges.push({ from: _cldConnectFrom, to: nodeId, polarity: pol });
+    _cldConnectFrom = null;
+    renderCLD();
+    cldSaveData();
+    toast('✓ 已新增連結');
+    return;
+  }
+}
+
 // 環狀佈局 + SVG 繪製
-function renderCLD(cld) {
-  document.getElementById('cld-regen-btn').style.display = '';
-  document.getElementById('cld-download-btn').style.display = '';
-  const nodes = (cld.nodes || []).slice(0, 16);
+function renderCLD() {
+  const cld = _cldData;
+  if (!cld || !cld.nodes || !cld.nodes.length) { showCLDEmpty(); return; }
+  _cldHeaderBtns(true);
+  const nodes = cld.nodes;
   const edges = cld.edges || [];
   const loops = cld.loops || [];
-  if (!nodes.length) { showCLDEmpty(); return; }
 
-  const W = 860, H = 540, cx = W/2, cy = H/2;
-  const R = Math.min(W, H) / 2 - 110;
+  // 模式提示 + 按鈕高亮
+  const hint = document.getElementById('cld-hint');
+  document.getElementById('cld-connect-btn').classList.toggle('primary', _cldMode === 'connect');
+  document.getElementById('cld-delete-btn').classList.toggle('primary', _cldMode === 'delete');
+  if (_cldMode === 'connect')
+    hint.textContent = _cldConnectFrom ? '再點「目標」節點完成連線' : '點一個「起點」節點';
+  else if (_cldMode === 'delete')
+    hint.textContent = '點節點即刪除';
+  else
+    hint.textContent = '';
+
+  const W = 900, H = 560, cx = W/2, cy = H/2;
+  const R = Math.min(W, H) / 2 - 116;
   const pos = {};
   nodes.forEach((n, i) => {
     const ang = -Math.PI/2 + (2*Math.PI*i)/nodes.length;
     pos[n.id] = { x: cx + R*Math.cos(ang), y: cy + R*Math.sin(ang),
                   label: n.label || n.id };
   });
-
-  const nodeW = 104, nodeH = 38;
-  // 量測文字寬度用：簡單以字數估
-  function boxW(label) { return Math.max(nodeW, Math.min(180, label.length * 15 + 26)); }
+  const nodeH = 40;
+  const boxW = label => Math.max(96, Math.min(180, [...String(label)].length * 15 + 26));
 
   let svg = `<svg class="cld-svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
   svg += `<defs>
-    <marker id="cld-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M0,0 L10,5 L0,10 z" fill="#9a9a9a"/></marker>
-    <marker id="cld-arrow-pos" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <marker id="cld-arrow-pos" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M0,0 L10,5 L0,10 z" fill="#5b9bd5"/></marker>
-    <marker id="cld-arrow-neg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <marker id="cld-arrow-neg" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M0,0 L10,5 L0,10 z" fill="#d56b6b"/></marker>
   </defs>`;
 
-  // edges（曲線，避開節點：起訖點往節點邊緣縮）
+  // edges：每條都朝「行進方向的左側」彎，讓 A→B 與 B→A 自然分開、不重疊
   edges.forEach(e => {
     const a = pos[e.from], b = pos[e.to];
     if (!a || !b) return;
     const neg = e.polarity === '-';
     const cls = neg ? 'cld-edge cld-edge-neg' : 'cld-edge cld-edge-pos';
     const marker = neg ? 'cld-arrow-neg' : 'cld-arrow-pos';
-    // 縮短到節點邊緣
     const dx = b.x - a.x, dy = b.y - a.y;
     const len = Math.hypot(dx, dy) || 1;
     const ux = dx/len, uy = dy/len;
-    const sx = a.x + ux*54, sy = a.y + uy*24;
-    const ex = b.x - ux*58, ey = b.y - uy*26;
-    // 控制點：往圓心反方向偏，做出弧線
+    // 起訖縮到節點邊緣外一點
+    const sx = a.x + ux*56, sy = a.y + uy*26;
+    const ex = b.x - ux*60, ey = b.y - uy*28;
+    // 控制點：垂直行進方向偏移（左側），偏移量隨弦長增加但有上限
+    const px = -uy, py = ux;
+    const bow = Math.min(80, Math.max(22, len * 0.16));
     const mx = (sx+ex)/2, my = (sy+ey)/2;
-    const ox = (mx - cx), oy = (my - cy);
-    const ol = Math.hypot(ox, oy) || 1;
-    const bend = 38;
-    const qx = mx + (ox/ol)*bend, qy = my + (oy/ol)*bend;
+    const qx = mx + px*bow, qy = my + py*bow;
     svg += `<path class="${cls}" d="M${sx},${sy} Q${qx},${qy} ${ex},${ey}" marker-end="url(#${marker})"/>`;
-    // 極性標記在曲線中點
-    svg += `<text class="cld-polarity" x="${qx}" y="${qy}" text-anchor="middle" dy="-3"
+    // 極性標記放在曲線實際中點（二次貝茲 t=0.5）
+    const lx = 0.25*sx + 0.5*qx + 0.25*ex;
+    const ly = 0.25*sy + 0.5*qy + 0.25*ey;
+    svg += `<circle cx="${lx}" cy="${ly}" r="9" fill="${neg?'#fdecec':'#e8f1fb'}" stroke="${neg?'#d56b6b':'#5b9bd5'}" stroke-width="1"/>`;
+    svg += `<text class="cld-polarity" x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="central"
              fill="${neg?'#d56b6b':'#5b9bd5'}">${neg?'−':'+'}</text>`;
   });
 
-  // nodes
-  nodes.forEach(n => {
-    const p = pos[n.id];
-    const w = boxW(p.label), h = nodeH;
-    svg += `<g class="cld-node">
-      <rect x="${p.x-w/2}" y="${p.y-h/2}" width="${w}" height="${h}" rx="19"/>
-      <text x="${p.x}" y="${p.y}" text-anchor="middle" dominant-baseline="central">${escSvg(p.label)}</text>
-    </g>`;
-  });
-
-  // loop badges：放在所有相關節點的形心
-  loops.slice(0, 6).forEach(lp => {
+  // loop badges：放在相關節點形心
+  loops.slice(0, 5).forEach(lp => {
     const ids = (lp.nodes || []).filter(id => pos[id]);
     if (ids.length < 2) return;
     let lx = 0, ly = 0;
@@ -5572,14 +5644,34 @@ function renderCLD(cld) {
     const isR = (lp.type || 'R').toUpperCase() === 'R';
     const col = isR ? '#7c3aed' : '#c0392b';
     svg += `<g class="cld-loop-badge">
-      <circle cx="${lx}" cy="${ly}" r="16" fill="none" stroke="${col}" stroke-width="1.6" stroke-dasharray="3 2"/>
+      <circle cx="${lx}" cy="${ly}" r="15" fill="${isR?'#f3eefd':'#fbeceb'}" stroke="${col}" stroke-width="1.6" stroke-dasharray="3 2"/>
       <text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="central" fill="${col}">${isR?'R':'B'}</text>
-      <text class="cld-loop-label" x="${lx}" y="${ly+30}" text-anchor="middle">${escSvg(lp.label||'')}</text>
+      <text class="cld-loop-label" x="${lx}" y="${ly+28}" text-anchor="middle">${escSvg(lp.label||'')}</text>
+    </g>`;
+  });
+
+  // nodes（可點擊）
+  const editing = (_cldMode !== 'view');
+  nodes.forEach(n => {
+    const p = pos[n.id];
+    const w = boxW(p.label), h = nodeH;
+    const sel = (_cldConnectFrom === n.id);
+    svg += `<g class="cld-node" data-node-id="${escSvg(n.id)}" style="cursor:${editing?'pointer':'default'}">
+      <rect x="${p.x-w/2}" y="${p.y-h/2}" width="${w}" height="${h}" rx="20"
+            ${sel ? 'stroke="#7c3aed" stroke-width="2.5"' : ''}/>
+      <text x="${p.x}" y="${p.y}" text-anchor="middle" dominant-baseline="central">${escSvg(p.label)}</text>
     </g>`;
   });
 
   svg += `</svg>`;
-  document.getElementById('cld-body').innerHTML = svg;
+  const body = document.getElementById('cld-body');
+  body.innerHTML = svg;
+  // 綁定節點點擊
+  body.querySelectorAll('.cld-node').forEach(g => {
+    g.addEventListener('click', () => {
+      if (_cldMode !== 'view') cldNodeClick(g.dataset.nodeId);
+    });
+  });
 }
 
 // SVG 文字逸出
@@ -5693,9 +5785,13 @@ function downloadCLD() {
   <div class="cld-inner">
     <div class="cld-head">
       <h2>🔄 因果循環圖</h2>
+      <span id="cld-hint" style="font-size:11px;color:var(--text-muted)"></span>
       <span class="cld-spacer"></span>
+      <button class="cld-btn" id="cld-addnode-btn" onclick="cldAddNode()" style="display:none">＋ 節點</button>
+      <button class="cld-btn" id="cld-connect-btn" onclick="cldSetMode('connect')" style="display:none">↳ 連線</button>
+      <button class="cld-btn" id="cld-delete-btn" onclick="cldSetMode('delete')" style="display:none">✕ 刪除</button>
       <button class="cld-btn" id="cld-regen-btn" onclick="generateCLD()" style="display:none">重新生成</button>
-      <button class="cld-btn" id="cld-download-btn" onclick="downloadCLD()" style="display:none">下載 SVG</button>
+      <button class="cld-btn" id="cld-download-btn" onclick="downloadCLD()" style="display:none">下載</button>
       <button class="cld-close" onclick="closeCLD()">×</button>
     </div>
     <div class="cld-body" id="cld-body"></div>
