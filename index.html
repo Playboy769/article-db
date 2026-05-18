@@ -532,17 +532,44 @@ body.dark #main { background: var(--bg-light); }
   font-family: 'Segoe UI', 'Noto Sans TC', 'PingFang TC', '微軟正黑體', 'Microsoft JhengHei', sans-serif;
   font-size: 14px;
   color: var(--text-main);
-  background: white;
+  background: var(--bg-light);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 10px 14px;
+  border-radius: 10px;
+  padding: 11px 15px;
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.16s, box-shadow 0.16s, background 0.16s;
   width: 100%;
+}
+.form-field input[type="text"]:hover,
+.form-field input[type="url"]:hover,
+.form-field textarea:hover {
+  border-color: var(--accent-dim);
 }
 .form-field input:focus, .form-field textarea:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(200,169,110,0.12);
+  background: var(--bg-darker);
+  box-shadow: 0 0 0 3px rgba(200,169,110,0.15);
+}
+.form-field input::placeholder, .form-field textarea::placeholder {
+  color: var(--text-faint);
+}
+/* ── 資料夾勾選標籤 ─────────────────────────────────────────── */
+.folder-chips { display: flex; flex-wrap: wrap; gap: 7px; padding-top: 2px; }
+.folder-chip {
+  font-size: 12.5px; padding: 6px 14px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--bg-light);
+  color: var(--text-muted); cursor: pointer; user-select: none;
+  transition: border-color 0.13s, background 0.13s, color 0.13s;
+  white-space: nowrap;
+}
+.folder-chip:hover { border-color: var(--accent-dim); color: var(--text-main); }
+.folder-chip.selected {
+  background: var(--accent); border-color: var(--accent);
+  color: #1a1510; font-weight: 600;
+}
+.folder-chip-new { border-style: dashed; color: var(--accent-dim); }
+.folder-chip-new:hover {
+  border-color: var(--accent); color: var(--accent); background: var(--bg-darker);
 }
 
 /* ── Custom Date Picker ──────────────────────────────────────── */
@@ -2207,8 +2234,9 @@ input:-webkit-autofill:focus {
         </div>
         <div class="form-field">
           <label class="form-label">資料夾分類</label>
-          <input id="f-folder" type="text" placeholder="例如：學習筆記、市場研究..." list="folder-datalist">
+          <input id="f-folder" type="hidden">
           <datalist id="folder-datalist"></datalist>
+          <div id="folder-chips" class="folder-chips"></div>
         </div>
         <div class="form-field">
           <label class="form-label">作者</label>
@@ -3058,9 +3086,38 @@ function showForm(id) {
 
     uploadedImages = [];
   }
+  renderFolderChips();
   renderFormImagePreviews();
   document.getElementById('f-title').focus();
   renderList();
+}
+
+// ── 資料夾勾選標籤 ────────────────────────────────────────────
+function renderFolderChips() {
+  const wrap = document.getElementById('folder-chips');
+  if (!wrap) return;
+  const cur = document.getElementById('f-folder').value;
+  let html = `<span class="folder-chip${cur===''?' selected':''}" onclick="selectFolderChip('')">未分類</span>`;
+  sortFoldersMixed(folders).forEach(f => {
+    html += `<span class="folder-chip${cur===f?' selected':''}" onclick="selectFolderChip('${escAttr(f)}')">${esc(f)}</span>`;
+  });
+  html += `<span class="folder-chip folder-chip-new" onclick="addFolderChip()">新資料夾</span>`;
+  wrap.innerHTML = html;
+}
+function selectFolderChip(name) {
+  document.getElementById('f-folder').value = name;
+  renderFolderChips();
+}
+async function addFolderChip() {
+  const name = prompt('新資料夾名稱：');
+  if (!name || !name.trim()) return;
+  const n = name.trim();
+  if (!folders.includes(n)) {
+    try { await _apiCreateFolder(n); } catch(e) { toast('建立資料夾失敗'); return; }
+    renderFolders();
+  }
+  document.getElementById('f-folder').value = n;
+  renderFolderChips();
 }
 
 async function saveArticle() {
