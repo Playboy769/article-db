@@ -1683,15 +1683,17 @@ body.dark .note-item { background: #252320; border-color: #3a3630; }
   transition: opacity 0.18s ease;
 }
 .toc-tick {
-  height: 2.5px; border-radius: 2px;
-  background: var(--border-dark);
-  transition: background 0.15s, width 0.15s;
+  height: 3px; border-radius: 2px;
+  background: #b3a791;
+  transition: background 0.15s, width 0.15s, height 0.15s;
 }
-.toc-tick.h1 { width: 24px; }
-.toc-tick.h2 { width: 17px; }
-.toc-tick.h3 { width: 12px; }
-.toc-tick.h4 { width: 9px;  }
-.toc-tick.active { background: var(--accent); }
+body.dark .toc-tick { background: #5d564c; }
+.toc-tick.h1 { width: 30px; }
+.toc-tick.h2 { width: 21px; }
+.toc-tick.h3 { width: 14px; }
+.toc-tick.h4 { width: 10px; }
+.toc-tick.active { background: var(--accent); height: 4px; }
+.toc-ticks:hover .toc-tick { background: var(--accent-dim); }
 /* 展開狀態：滑過時顯示文字清單 */
 .toc-expanded {
   display: none;
