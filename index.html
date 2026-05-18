@@ -639,8 +639,26 @@ body.dark .dp-footer-btn:hover { background: #2e2c28; }
   align-items: center;
   gap: 10px;
 }
-.image-upload-wrapper input[type="file"] {
+.image-upload-wrapper input[type="file"] { display: none; }
+.file-pick-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-light);
+  border: 1px solid var(--border-dark);
+  border-radius: 8px;
+  padding: 8px 16px;
   font-size: 12px;
+  font-weight: 600;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.file-pick-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--bg-darker);
 }
 .btn-remove-img {
   background: var(--danger);
@@ -1767,11 +1785,12 @@ body.dark .fud-inner { background: #1e1c1a; }
 
 /* ── Dark toggle btn ────────────────────────────────────────── */
 .btn-dark-toggle {
-  background: none; border: none; font-size: 15px; cursor: pointer;
-  padding: 2px 4px; border-radius: 4px; opacity: 0.55; transition: opacity 0.15s;
-  line-height: 1;
+  background: none; border: 1px solid var(--border-dark); font-size: 11px;
+  cursor: pointer; padding: 4px 10px; border-radius: 6px;
+  color: var(--text-muted); transition: border-color 0.15s, color 0.15s;
+  line-height: 1; font-family: inherit;
 }
-.btn-dark-toggle:hover { opacity: 1; }
+.btn-dark-toggle:hover { border-color: var(--accent); color: var(--accent); }
 
 /* ── Sort dropdown (垂直 resize handle) ──────────────────────── */
 .sort-wrap {
@@ -2010,13 +2029,13 @@ input:-webkit-autofill:focus {
       <div class="brand-title" id="brand-title">文章資料庫</div>
       <div class="brand-sub" id="brand-sub">Article Archive</div>
     </div>
-    <button class="btn-dark-toggle" id="dark-toggle" onclick="toggleDarkMode()" title="深色／淺色模式">🌙</button>
+    <button class="btn-dark-toggle" id="dark-toggle" onclick="toggleDarkMode()" title="深色／淺色模式">深色</button>
   </div>
 
   <div class="mode-switcher">
-    <button class="mode-tab active" id="tab-articles" onclick="switchMode('articles')">📚 文章庫</button>
-    <button class="mode-tab" id="tab-reports" onclick="switchMode('reports')">🏢 報告</button>
-    <button class="mode-tab" id="tab-links" onclick="switchMode('links')">🔗 連結庫</button>
+    <button class="mode-tab active" id="tab-articles" onclick="switchMode('articles')">文章庫</button>
+    <button class="mode-tab" id="tab-reports" onclick="switchMode('reports')">報告</button>
+    <button class="mode-tab" id="tab-links" onclick="switchMode('links')">連結庫</button>
   </div>
 
   <!-- ── 文章庫區塊 ── -->
@@ -2033,9 +2052,9 @@ input:-webkit-autofill:focus {
       </div>
     </div>
     <div class="sidebar-actions">
-      <button class="btn-new" onclick="showForm()">＋ 新增文章</button>
-      <button class="btn-new-folder" onclick="addFolder()">＋ 新增資料夾</button>
-      <button class="btn-new-folder" id="btn-batch" onclick="toggleBatchMode()" title="批次操作">☑</button>
+      <button class="btn-new" onclick="showForm()">新增文章</button>
+      <button class="btn-new-folder" onclick="addFolder()">新增資料夾</button>
+      <button class="btn-new-folder" id="btn-batch" onclick="toggleBatchMode()" title="批次操作">批次</button>
     </div>
     <div id="batch-bar">
       <span id="batch-count" style="font-size:12px;color:var(--text-muted);flex-shrink:0">已選 0 篇</span>
@@ -2073,7 +2092,7 @@ input:-webkit-autofill:focus {
       </div>
     </div>
     <div class="sidebar-actions">
-      <button class="btn-new" onclick="showReportForm()">＋ 新增報告</button>
+      <button class="btn-new" onclick="showReportForm()">新增報告</button>
     </div>
     <div id="report-sector-tabs" class="folder-tabs"></div>
     <div class="sidebar-list-header">
@@ -2091,8 +2110,8 @@ input:-webkit-autofill:focus {
       </div>
     </div>
     <div class="sidebar-actions" style="display:flex;gap:6px">
-      <button class="btn-new" style="flex:1;font-size:11px;padding:7px 4px" onclick="showLinkForm()">＋ 新增連結</button>
-      <button class="btn-new-folder" style="flex:1;margin-top:0;font-size:11px;padding:7px 4px" onclick="addLinkFolder()">＋ 資料夾</button>
+      <button class="btn-new" style="flex:1;font-size:11px;padding:7px 4px" onclick="showLinkForm()">新增連結</button>
+      <button class="btn-new-folder" style="flex:1;margin-top:0;font-size:11px;padding:7px 4px" onclick="addLinkFolder()">資料夾</button>
     </div>
     <div class="folder-tabs" id="link-folder-tabs"></div>
     <div style="flex:1"></div>
@@ -2100,17 +2119,17 @@ input:-webkit-autofill:focus {
 
   <div class="sidebar-footer">
     <div class="articles-only sidebar-bottom-btns">
-      <button class="btn-footer-sm" onclick="openNotesSearch()" title="搜尋所有筆記">🔍 筆記搜尋</button>
-      <button class="btn-footer-sm" onclick="openStats()" title="統計總覽">📊 統計</button>
+      <button class="btn-footer-sm" onclick="openNotesSearch()" title="搜尋所有筆記">筆記搜尋</button>
+      <button class="btn-footer-sm" onclick="openStats()" title="統計總覽">統計</button>
     </div>
     <div class="articles-only footer-btn-grid">
-      <button class="btn-footer-sm" onclick="exportJSON()" title="備份 JSON">↓ JSON</button>
-      <button class="btn-footer-sm" onclick="importJSON()" title="還原 JSON">↑ 還原</button>
-      <button class="btn-footer-sm" onclick="exportCSV()" title="匯出 CSV">↓ CSV</button>
-      <button class="btn-footer-sm" style="color:var(--accent-dim);border-color:var(--accent-dim)" onclick="openTagManager()" title="管理標籤">🏷 標籤</button>
+      <button class="btn-footer-sm" onclick="exportJSON()" title="備份 JSON">備份 JSON</button>
+      <button class="btn-footer-sm" onclick="importJSON()" title="還原 JSON">還原 JSON</button>
+      <button class="btn-footer-sm" onclick="exportCSV()" title="匯出 CSV">匯出 CSV</button>
+      <button class="btn-footer-sm" style="color:var(--accent-dim);border-color:var(--accent-dim)" onclick="openTagManager()" title="管理標籤">標籤</button>
     </div>
-    <button class="btn-export reports-only" onclick="exportReportsCSV()">↓ 匯出報告 CSV</button>
-    <button class="btn-export links-only" onclick="exportLinksJSON()">↓ 備份連結</button>
+    <button class="btn-export reports-only" onclick="exportReportsCSV()">匯出報告 CSV</button>
+    <button class="btn-export links-only" onclick="exportLinksJSON()">備份連結</button>
   </div>
 </div>
 
@@ -2128,19 +2147,19 @@ input:-webkit-autofill:focus {
     <div id="article-view">
       <div id="read-progress-bar"></div>
       <div class="article-toolbar">
-        <button class="btn-edit" onclick="showForm(currentId)">✎ 編輯</button>
-        <button class="btn-delete" onclick="deleteArticle(currentId)">✕ 刪除</button>
-        <button class="btn-star" id="btn-star" onclick="toggleStar(currentId)">☆ 收藏</button>
-        <button class="btn-duplicate" onclick="duplicateArticle(currentId)">⎘ 複製</button>
-        <button class="btn-edit" id="btn-highlight" onclick="toggleHighlighter()" title="螢光筆標記選取文字">🖊 螢光筆</button>
-        <button class="btn-edit" id="btn-notes" onclick="toggleNotes()" title="筆記">📝 <span id="notes-badge"></span>筆記</button>
-        <button class="btn-edit" id="btn-cld" onclick="openCLD()" title="因果循環圖（AI 分析文章）">🔄 因果圖</button>
+        <button class="btn-edit" onclick="showForm(currentId)">編輯</button>
+        <button class="btn-delete" onclick="deleteArticle(currentId)">刪除</button>
+        <button class="btn-star" id="btn-star" onclick="toggleStar(currentId)">收藏</button>
+        <button class="btn-duplicate" onclick="duplicateArticle(currentId)">複製</button>
+        <button class="btn-edit" id="btn-highlight" onclick="toggleHighlighter()" title="螢光筆標記選取文字">螢光筆</button>
+        <button class="btn-edit" id="btn-notes" onclick="toggleNotes()" title="筆記"><span id="notes-badge"></span>筆記</button>
+        <button class="btn-edit" id="btn-cld" onclick="openCLD()" title="因果循環圖（AI 分析文章）">因果圖</button>
         <div style="display:flex;gap:2px;margin-left:4px;flex-shrink:0">
           <button class="btn-edit" onclick="changeFontSize(-1)" title="縮小字體" style="padding:4px 8px;font-weight:600">A−</button>
           <button class="btn-edit" onclick="changeFontSize(1)"  title="放大字體" style="padding:4px 8px;font-weight:600">A+</button>
         </div>
-        <button class="btn-edit" id="btn-fullscreen" onclick="toggleFullscreen()" title="全螢幕閱讀（ESC 退出）" style="margin-left:auto">⤢</button>
-        <button class="btn-edit" onclick="printArticle()" title="列印 / 匯出 PDF">⎙ 列印</button>
+        <button class="btn-edit" id="btn-fullscreen" onclick="toggleFullscreen()" title="全螢幕閱讀（ESC 退出）" style="margin-left:auto">全螢幕</button>
+        <button class="btn-edit" onclick="printArticle()" title="列印 / 匯出 PDF">列印</button>
       </div>
       <div class="article-meta-bar">
         <div class="meta-item">
@@ -2178,7 +2197,7 @@ input:-webkit-autofill:focus {
     <div id="article-form">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
         <div class="form-title" id="form-heading" style="margin-bottom:0">新增文章</div>
-        <button type="button" class="btn-fetch-url" onclick="showFetchUrlDialog()">🔗 從 URL 抓取</button>
+        <button type="button" class="btn-fetch-url" onclick="showFetchUrlDialog()">從 URL 抓取</button>
       </div>
       
       <div class="form-grid">
@@ -2222,8 +2241,9 @@ input:-webkit-autofill:focus {
         <label class="form-label">附帶圖片</label>
         <div class="image-upload-wrapper">
           <input id="f-image" type="file" accept="image/*" multiple>
+          <label for="f-image" class="file-pick-btn">選擇圖片</label>
           <span class="upload-hint">可複選 · 自動壓縮至 1280px / JPEG</span>
-          <button id="btn-remove-img" class="btn-remove-img" onclick="clearImages(event)">✕ 全部移除</button>
+          <button id="btn-remove-img" class="btn-remove-img" onclick="clearImages(event)">全部移除</button>
         </div>
         <div id="form-image-previews" class="image-thumb-grid"></div>
       </div>
@@ -2231,7 +2251,7 @@ input:-webkit-autofill:focus {
       <div class="form-field" id="content-field">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
           <label class="form-label" style="margin-bottom:0">文章內容</label>
-          <button type="button" class="preview-toggle" id="preview-toggle" onclick="togglePreview()">👁 預覽</button>
+          <button type="button" class="preview-toggle" id="preview-toggle" onclick="togglePreview()">預覽</button>
         </div>
         <div id="content-wrap">
           <textarea id="f-content" placeholder="在此輸入文章內容…"></textarea>
@@ -2248,18 +2268,18 @@ input:-webkit-autofill:focus {
     <div id="report-view">
       <div id="report-progress-bar"></div>
       <div class="article-toolbar">
-        <button class="btn-edit" onclick="showReportForm(currentReportId)">✎ 編輯</button>
-        <button class="btn-delete" onclick="deleteReport(currentReportId)">✕ 刪除</button>
-        <button class="btn-star" id="btn-rstar" onclick="toggleReportStar(currentReportId)">☆ 收藏</button>
-        <button class="btn-duplicate" onclick="duplicateReport(currentReportId)">⎘ 複製</button>
-        <button class="btn-edit" id="btn-rhighlight" onclick="toggleHighlighter()" title="螢光筆標記選取文字">🖊 螢光筆</button>
-        <button class="btn-edit" id="btn-rnotes" onclick="toggleNotes()" title="筆記">📝 <span id="rnotes-badge"></span>筆記</button>
+        <button class="btn-edit" onclick="showReportForm(currentReportId)">編輯</button>
+        <button class="btn-delete" onclick="deleteReport(currentReportId)">刪除</button>
+        <button class="btn-star" id="btn-rstar" onclick="toggleReportStar(currentReportId)">收藏</button>
+        <button class="btn-duplicate" onclick="duplicateReport(currentReportId)">複製</button>
+        <button class="btn-edit" id="btn-rhighlight" onclick="toggleHighlighter()" title="螢光筆標記選取文字">螢光筆</button>
+        <button class="btn-edit" id="btn-rnotes" onclick="toggleNotes()" title="筆記"><span id="rnotes-badge"></span>筆記</button>
         <div style="display:flex;gap:2px;margin-left:4px;flex-shrink:0">
           <button class="btn-edit" onclick="changeFontSize(-1)" title="縮小字體" style="padding:4px 8px;font-weight:600">A−</button>
           <button class="btn-edit" onclick="changeFontSize(1)"  title="放大字體" style="padding:4px 8px;font-weight:600">A+</button>
         </div>
-        <button class="btn-edit" onclick="toggleFullscreen()" title="全螢幕閱讀（ESC 退出）" style="margin-left:auto">⤢</button>
-        <button class="btn-edit" onclick="printReport()" title="列印 / 匯出 PDF">⎙ 列印</button>
+        <button class="btn-edit" onclick="toggleFullscreen()" title="全螢幕閱讀（ESC 退出）" style="margin-left:auto">全螢幕</button>
+        <button class="btn-edit" onclick="printReport()" title="列印 / 匯出 PDF">列印</button>
       </div>
       <div class="article-meta-bar">
         <div class="meta-item">
@@ -2359,8 +2379,9 @@ input:-webkit-autofill:focus {
         <label class="form-label">附帶圖片</label>
         <div class="image-upload-wrapper">
           <input id="rf-image" type="file" accept="image/*" multiple>
+          <label for="rf-image" class="file-pick-btn">選擇圖片</label>
           <span class="upload-hint">可複選 · 自動壓縮至 1280px / JPEG</span>
-          <button id="btn-remove-report-img" class="btn-remove-img" onclick="clearReportImages(event)">✕ 全部移除</button>
+          <button id="btn-remove-report-img" class="btn-remove-img" onclick="clearReportImages(event)">全部移除</button>
         </div>
         <div id="report-form-image-previews" class="image-thumb-grid"></div>
       </div>
@@ -2379,7 +2400,7 @@ input:-webkit-autofill:focus {
       <div class="welcome-icon">🔗</div>
       <div class="welcome-title">連結資料庫</div>
       <div class="welcome-sub">儲存常用網站，一鍵快速開啟</div>
-      <button class="btn-new" style="margin-top:20px;padding:10px 24px;font-size:13px" onclick="showLinkForm()">＋ 新增第一個連結</button>
+      <button class="btn-new" style="margin-top:20px;padding:10px 24px;font-size:13px" onclick="showLinkForm()">新增第一個連結</button>
     </div>
 
     <!-- ── 連結庫：卡片格 ── -->
@@ -3665,12 +3686,12 @@ let darkMode = localStorage.getItem('darkMode') === '1';
 function toggleDarkMode() {
   darkMode = !darkMode;
   document.body.classList.toggle('dark', darkMode);
-  document.getElementById('dark-toggle').textContent = darkMode ? '☀️' : '🌙';
+  document.getElementById('dark-toggle').textContent = darkMode ? '淺色' : '深色';
   localStorage.setItem('darkMode', darkMode ? '1' : '0');
 }
 if (darkMode) {
   document.body.classList.add('dark');
-  document.getElementById('dark-toggle').textContent = '☀️';
+  document.getElementById('dark-toggle').textContent = '淺色';
 }
 
 // ── Tag filter ─────────────────────────────────────────────────
@@ -4184,7 +4205,7 @@ function renderLinks() {
   const grid = document.getElementById('links-grid');
   if (!grid) return;
   if (!list.length) {
-    grid.innerHTML = `<div class="links-empty">${q ? '找不到符合的連結' : '此資料夾尚無連結<br><button class="btn-new" style="margin-top:10px" onclick="showLinkForm()">＋ 新增連結</button>'}</div>`;
+    grid.innerHTML = `<div class="links-empty">${q ? '找不到符合的連結' : '此資料夾尚無連結<br><button class="btn-new" style="margin-top:10px" onclick="showLinkForm()">新增連結</button>'}</div>`;
     return;
   }
   grid.innerHTML = list.map(l => linkCardHtml(l)).join('');
@@ -4851,7 +4872,7 @@ function renderNotes() {
             <button class="note-img-upload-btn" onclick="insertTableTpl('edit-ta-${note.id}', setEditFmt)" title="插入表格">表格</button>
             <input type="file" id="note-edit-img-file" accept="image/*" multiple style="display:none" onchange="onEditImgSelect(this)">
             <div class="note-edit-actions" style="flex:1">
-              <button class="note-edit-save" onclick="saveNoteEdit('${note.id}')">✓ 儲存</button>
+              <button class="note-edit-save" onclick="saveNoteEdit('${note.id}')">儲存</button>
               <button class="note-edit-cancel" onclick="cancelEditNote()">取消</button>
             </div>
           </div>
@@ -5471,7 +5492,7 @@ function showCLDEmpty() {
     `<div class="cld-empty">
        <div class="cld-big">🔄</div>
        <div>還沒有因果循環圖<br>AI 會分析這篇文章，萃取出關鍵變數與因果關係</div>
-       <button class="cld-btn primary" onclick="generateCLD()">✨ 用 AI 生成因果圖</button>
+       <button class="cld-btn primary" onclick="generateCLD()">用 AI 生成因果圖</button>
      </div>`;
 }
 function showCLDLoading() {
@@ -5706,7 +5727,7 @@ function downloadCLD() {
   <div class="notes-panel-header" id="notes-panel-header">
     <span class="notes-panel-title">📝 筆記</span>
     <div style="display:flex;gap:2px;align-items:center">
-      <button class="notes-panel-close" onclick="exportNotes()" title="匯出筆記為 Markdown" style="font-size:14px">↓</button>
+      <button class="notes-panel-close" onclick="exportNotes()" title="匯出筆記為 Markdown" style="font-size:12px;width:auto;padding:0 8px">匯出</button>
       <button class="notes-panel-close" onclick="toggleNotes()" title="關閉">×</button>
     </div>
   </div>
@@ -5721,7 +5742,7 @@ function downloadCLD() {
       <div style="display:flex;gap:6px;margin-top:6px">
         <button class="note-img-upload-btn" onclick="document.getElementById('note-img-file').click()">圖片</button>
         <button class="note-img-upload-btn" onclick="insertTableTpl('note-input', setNoteFormat)" title="插入表格範本（自動切 MD）">表格</button>
-        <button class="notes-add-btn" style="flex:1;margin-top:0" onclick="addNote()">+ 新增筆記</button>
+        <button class="notes-add-btn" style="flex:1;margin-top:0" onclick="addNote()">新增筆記</button>
       </div>
       <input type="file" id="note-img-file" accept="image/*" multiple style="display:none" onchange="onNoteImgSelect(this)">
     </div>
@@ -5752,9 +5773,9 @@ function downloadCLD() {
   <button class="hl-color-btn" style="background:#FF4182" title="粉色" onclick="hlApply('pink')"></button>
   <button class="hl-color-btn" style="background:#3296FF" title="藍色" onclick="hlApply('blue')"></button>
   <div class="hl-sep"></div>
-  <button class="hl-erase-btn" onclick="startAnchorNote()" style="white-space:nowrap">📝 筆記</button>
+  <button class="hl-erase-btn" onclick="startAnchorNote()" style="white-space:nowrap">筆記</button>
   <div class="hl-sep"></div>
-  <button class="hl-erase-btn" onclick="hlHideToolbar()">✕</button>
+  <button class="hl-erase-btn" onclick="hlHideToolbar()">關閉</button>
 </div>
 
 <!-- TOC panel -->
@@ -5797,9 +5818,9 @@ function downloadCLD() {
       <h2>🔄 因果循環圖</h2>
       <span id="cld-hint" style="font-size:11px;color:var(--text-muted)"></span>
       <span class="cld-spacer"></span>
-      <button class="cld-btn" id="cld-addnode-btn" onclick="cldAddNode()" style="display:none">＋ 節點</button>
-      <button class="cld-btn" id="cld-connect-btn" onclick="cldSetMode('connect')" style="display:none">↳ 連線</button>
-      <button class="cld-btn" id="cld-delete-btn" onclick="cldSetMode('delete')" style="display:none">✕ 刪除</button>
+      <button class="cld-btn" id="cld-addnode-btn" onclick="cldAddNode()" style="display:none">新增節點</button>
+      <button class="cld-btn" id="cld-connect-btn" onclick="cldSetMode('connect')" style="display:none">連線</button>
+      <button class="cld-btn" id="cld-delete-btn" onclick="cldSetMode('delete')" style="display:none">刪除</button>
       <button class="cld-btn" id="cld-regen-btn" onclick="generateCLD()" style="display:none">重新生成</button>
       <button class="cld-btn" id="cld-download-btn" onclick="downloadCLD()" style="display:none">下載</button>
       <button class="cld-close" onclick="closeCLD()">×</button>
