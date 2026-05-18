@@ -3041,12 +3041,11 @@ function viewArticle(id) {
   applyLatex(document.getElementById('view-content'));
   applyStoredHighlights({type:'article', id: a.id});
   applyAnchorNotes(id);
-  buildTOC('view-content');
-
   // Close notes panel when switching articles, update badge
   document.getElementById('notes-panel')?.classList.remove('open');
-  document.getElementById('toc-panel')?.classList.remove('visible');
   renderNotes();
+
+  buildTOC('view-content');
 
   renderViewGallery('view-image-gallery', getImages(a));
 
@@ -3462,14 +3461,13 @@ function viewReport(id) {
   const scrollBody = document.querySelector('#report-view .article-scroll-body');
   if (scrollBody) scrollBody.scrollTop = 0;
 
+  // 關閉筆記面板（避免帶上一篇狀態），同時刷新筆記
+  document.getElementById('notes-panel')?.classList.remove('open');
+  renderNotes();
+
   // 套用已存的螢光筆 + TOC
   applyStoredHighlights({type:'report', id: r.id});
   buildTOC('rv-content');
-
-  // 關閉筆記面板（避免帶上一篇狀態），同時刷新筆記
-  document.getElementById('notes-panel')?.classList.remove('open');
-  document.getElementById('toc-panel')?.classList.remove('visible');
-  renderNotes();
 
   renderReportList();
 }
