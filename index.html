@@ -1720,6 +1720,8 @@ body.dark .toc-tick { background: #5d564c; }
 .toc-item.h2 { padding-left: 14px; }
 .toc-item.h3 { padding-left: 26px; font-size: 11px; }
 .toc-item.h4 { padding-left: 36px; font-size: 10.5px; }
+.toc-item .katex { font-size: 1em; }
+.toc-item strong, .toc-item em { font-weight: inherit; font-style: normal; }
 body.dark .toc-expanded { background: #1e1c1a; border-color: #3a3630; }
 
 /* ── Reading fullscreen ──────────────────────────────────────── */
@@ -5313,14 +5315,19 @@ function buildTOC(contentId = 'view-content') {
     tk.dataset.idx = i;
     tk.onclick = () => _tocGo(i);
     ticks.appendChild(tk);
-    // 展開文字項
+    // 展開文字項（複製標題格式，支援 LaTeX；清掉螢光筆/錨點包裝避免誤觸）
     const div = document.createElement('div');
     div.className = 'toc-item ' + lvl;
     div.dataset.idx = i;
-    div.textContent = h.textContent.trim();
+    const clone = h.cloneNode(true);
+    clone.querySelectorAll('mark.hl, .note-anchor').forEach(el => {
+      el.replaceWith(document.createTextNode(el.textContent));
+    });
+    div.innerHTML = clone.innerHTML;
     div.onclick = () => _tocGo(i);
     list.appendChild(div);
   });
+  applyLatex(list);
   panel.classList.add('visible');
   if (scrollBody) {
     scrollBody.removeEventListener('scroll', _tocScrollSpy);
