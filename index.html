@@ -441,6 +441,55 @@ body.dark #main { background: var(--bg-light); }
 }
 .btn-edit:hover { border-color: var(--accent); color: var(--accent-dim); }
 .btn-delete:hover { border-color: var(--danger); color: var(--danger); }
+/* ── Icon toolbar buttons ─────────────────────────────── */
+.btn-icon {
+  width: 32px; height: 30px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  position: relative;
+  background: white; border: 1px solid var(--border); border-radius: 6px;
+  color: var(--text-muted); cursor: pointer; transition: all 0.12s;
+}
+.btn-icon svg { width: 16px; height: 16px; stroke: currentColor; fill: none;
+  stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.btn-icon.btn-star svg { fill: none; }
+.btn-icon.btn-star.starred svg { fill: var(--accent); stroke: var(--accent); }
+.btn-icon:hover { border-color: var(--accent); color: var(--accent-dim); }
+.btn-icon.btn-delete:hover { border-color: var(--danger); color: var(--danger); }
+.btn-icon .btn-badge {
+  position: absolute; top: -4px; right: -4px;
+  min-width: 14px; height: 14px; padding: 0 3px;
+  border-radius: 7px; background: var(--accent); color: #fff;
+  font-size: 9px; line-height: 14px; text-align: center; font-weight: 700;
+}
+.btn-icon .btn-badge:empty { display: none; }
+.btn-text {
+  padding: 4px 8px; font-weight: 600;
+  background: white; border: 1px solid var(--border); border-radius: 6px;
+  font-size: 12px; cursor: pointer; color: var(--text-muted); transition: all 0.12s;
+}
+.btn-text:hover { border-color: var(--accent); color: var(--accent-dim); }
+body.dark .btn-icon, body.dark .btn-text { background: #1c1c1f; border-color: #36363a; }
+/* ── 標題下方一行式 Byline ─────────────────────────────── */
+.article-byline {
+  display: flex; flex-wrap: wrap; align-items: center;
+  font-size: 12.5px; color: var(--text-muted);
+  margin-bottom: 22px; padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0; gap: 0;
+}
+.article-byline .byline-item { display: inline-flex; align-items: center; }
+.article-byline .byline-item:empty { display: none; }
+.article-byline .byline-item + .byline-item:not(:empty)::before,
+.article-byline .byline-item:not(:empty) + .byline-tags:not(:empty)::before {
+  content: "·"; margin: 0 10px; color: var(--text-faint);
+}
+.article-byline .byline-source a {
+  color: var(--accent-dim); text-decoration: none; font-size: 12px;
+}
+.article-byline .byline-source a:hover { text-decoration: underline; }
+.article-byline .byline-tags { display: inline-flex; flex-wrap: wrap; gap: 5px; margin-left: 10px; }
+.article-byline .byline-tags:empty { display: none; }
+/* Legacy meta-bar kept just in case anything else references it */
 .article-meta-bar {
   display: flex;
   gap: 20px;
@@ -2212,48 +2261,30 @@ input:-webkit-autofill:focus {
 
     <div id="article-view">
       <div id="read-progress-bar"></div>
-      <div class="article-toolbar">
-        <button class="btn-edit" onclick="showForm(currentId)">編輯</button>
-        <button class="btn-delete" onclick="deleteArticle(currentId)">刪除</button>
-        <button class="btn-star" id="btn-star" onclick="toggleStar(currentId)">收藏</button>
-        <button class="btn-duplicate" onclick="duplicateArticle(currentId)">複製</button>
-        <button class="btn-edit" id="btn-highlight" onclick="toggleHighlighter()" title="螢光筆標記選取文字">螢光筆</button>
-        <button class="btn-edit" id="btn-notes" onclick="toggleNotes()" title="筆記"><span id="notes-badge"></span>筆記</button>
-        <button class="btn-edit" id="btn-cld" onclick="openCLD()" title="因果循環圖（AI 分析文章）">因果圖</button>
+      <div class="article-toolbar icon-toolbar">
+        <button class="btn-icon btn-edit" onclick="showForm(currentId)" title="編輯"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg></button>
+        <button class="btn-icon btn-delete" onclick="deleteArticle(currentId)" title="刪除"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg></button>
+        <button class="btn-icon btn-star" id="btn-star" onclick="toggleStar(currentId)" title="收藏"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>
+        <button class="btn-icon btn-duplicate" onclick="duplicateArticle(currentId)" title="複製"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+        <button class="btn-icon btn-edit" id="btn-highlight" onclick="toggleHighlighter()" title="螢光筆"><svg viewBox="0 0 24 24"><path d="M6 17l3-3 7-7 3 3-7 7-3 3z"/><path d="M14 7l3 3"/><line x1="3" y1="21" x2="21" y2="21"/></svg></button>
+        <button class="btn-icon btn-edit" id="btn-notes" onclick="toggleNotes()" title="筆記"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="14" y2="17"/></svg><span id="notes-badge" class="btn-badge"></span></button>
+        <button class="btn-icon btn-edit" id="btn-cld" onclick="openCLD()" title="因果循環圖（AI 分析文章）"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.4"/><circle cx="18" cy="6" r="2.4"/><circle cx="12" cy="18" r="2.4"/><line x1="8" y1="7.5" x2="11" y2="15.7"/><line x1="16" y1="7.5" x2="13" y2="15.7"/><line x1="8.4" y1="6" x2="15.6" y2="6"/></svg></button>
         <div style="display:flex;gap:2px;margin-left:4px;flex-shrink:0">
-          <button class="btn-edit" onclick="changeFontSize(-1)" title="縮小字體" style="padding:4px 8px;font-weight:600">A−</button>
-          <button class="btn-edit" onclick="changeFontSize(1)"  title="放大字體" style="padding:4px 8px;font-weight:600">A+</button>
+          <button class="btn-edit btn-text" onclick="changeFontSize(-1)" title="縮小字體">A−</button>
+          <button class="btn-edit btn-text" onclick="changeFontSize(1)"  title="放大字體">A+</button>
         </div>
-        <button class="btn-edit" id="btn-fullscreen" onclick="toggleFullscreen()" title="全螢幕閱讀（ESC 退出）" style="margin-left:auto">全螢幕</button>
-        <button class="btn-edit" onclick="printArticle()" title="列印 / 匯出 PDF">列印</button>
-      </div>
-      <div class="article-meta-bar">
-        <div class="meta-item">
-          <span class="meta-label">資料夾</span>
-          <span class="meta-value" id="view-folder">—</span>
-        </div>
-        <div class="meta-item">
-          <span class="meta-label">作者</span>
-          <span class="meta-value" id="view-author">—</span>
-        </div>
-        <div class="meta-item">
-          <span class="meta-label">日期</span>
-          <span class="meta-value" id="view-date">—</span>
-        </div>
-        <div class="meta-item">
-          <span class="meta-label">來源</span>
-          <span class="meta-value" id="view-source">—</span>
-        </div>
-        <div class="meta-item" id="view-keywords-item" style="display:none">
-          <span class="meta-label">關鍵字</span>
-          <div class="meta-value" id="view-keywords"></div>
-        </div>
-        <div class="meta-item meta-reading" style="margin-left:auto">
-          <span class="meta-label">閱讀時間</span>
-          <span class="meta-value" id="word-count-bar"></span>
-        </div>
+        <button class="btn-icon btn-edit" id="btn-fullscreen" onclick="toggleFullscreen()" title="全螢幕閱讀（ESC 退出）" style="margin-left:auto"><svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg></button>
+        <button class="btn-icon btn-edit" onclick="printArticle()" title="列印 / 匯出 PDF"><svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>
       </div>
       <div class="article-title-display" id="view-title"></div>
+      <div class="article-byline">
+        <span id="view-folder" class="byline-item"></span>
+        <span id="view-author" class="byline-item"></span>
+        <span id="view-date" class="byline-item"></span>
+        <span id="view-source" class="byline-item byline-source"></span>
+        <span id="word-count-bar" class="byline-item byline-reading"></span>
+        <span id="view-keywords" class="byline-tags"></span>
+      </div>
       <div class="article-scroll-body">
         <div id="view-image-gallery" class="image-gallery"></div>
         <div class="article-content-display" id="view-content"></div>
@@ -2335,52 +2366,31 @@ input:-webkit-autofill:focus {
     <!-- ── 公司報告：閱讀 ── -->
     <div id="report-view">
       <div id="report-progress-bar"></div>
-      <div class="article-toolbar">
-        <button class="btn-edit" onclick="showReportForm(currentReportId)">編輯</button>
-        <button class="btn-delete" onclick="deleteReport(currentReportId)">刪除</button>
-        <button class="btn-star" id="btn-rstar" onclick="toggleReportStar(currentReportId)">收藏</button>
-        <button class="btn-duplicate" onclick="duplicateReport(currentReportId)">複製</button>
-        <button class="btn-edit" id="btn-rhighlight" onclick="toggleHighlighter()" title="螢光筆標記選取文字">螢光筆</button>
-        <button class="btn-edit" id="btn-rnotes" onclick="toggleNotes()" title="筆記"><span id="rnotes-badge"></span>筆記</button>
+      <div class="article-toolbar icon-toolbar">
+        <button class="btn-icon btn-edit" onclick="showReportForm(currentReportId)" title="編輯"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg></button>
+        <button class="btn-icon btn-delete" onclick="deleteReport(currentReportId)" title="刪除"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg></button>
+        <button class="btn-icon btn-star" id="btn-rstar" onclick="toggleReportStar(currentReportId)" title="收藏"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>
+        <button class="btn-icon btn-duplicate" onclick="duplicateReport(currentReportId)" title="複製"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+        <button class="btn-icon btn-edit" id="btn-rhighlight" onclick="toggleHighlighter()" title="螢光筆"><svg viewBox="0 0 24 24"><path d="M6 17l3-3 7-7 3 3-7 7-3 3z"/><path d="M14 7l3 3"/><line x1="3" y1="21" x2="21" y2="21"/></svg></button>
+        <button class="btn-icon btn-edit" id="btn-rnotes" onclick="toggleNotes()" title="筆記"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="14" y2="17"/></svg><span id="rnotes-badge" class="btn-badge"></span></button>
         <div style="display:flex;gap:2px;margin-left:4px;flex-shrink:0">
-          <button class="btn-edit" onclick="changeFontSize(-1)" title="縮小字體" style="padding:4px 8px;font-weight:600">A−</button>
-          <button class="btn-edit" onclick="changeFontSize(1)"  title="放大字體" style="padding:4px 8px;font-weight:600">A+</button>
+          <button class="btn-edit btn-text" onclick="changeFontSize(-1)" title="縮小字體">A−</button>
+          <button class="btn-edit btn-text" onclick="changeFontSize(1)"  title="放大字體">A+</button>
         </div>
-        <button class="btn-edit" onclick="toggleFullscreen()" title="全螢幕閱讀（ESC 退出）" style="margin-left:auto">全螢幕</button>
-        <button class="btn-edit" onclick="printReport()" title="列印 / 匯出 PDF">列印</button>
-      </div>
-      <div class="article-meta-bar">
-        <div class="meta-item">
-          <span class="meta-label">產業類別</span>
-          <span class="meta-value" id="rv-sector">—</span>
-        </div>
-        <div class="meta-item">
-          <span class="meta-label">評級</span>
-          <span class="meta-value" id="rv-rating">—</span>
-        </div>
-        <div class="meta-item">
-          <span class="meta-label">目標價</span>
-          <span class="meta-value" id="rv-target">—</span>
-        </div>
-        <div class="meta-item">
-          <span class="meta-label">報告日期</span>
-          <span class="meta-value" id="rv-date">—</span>
-        </div>
-        <div class="meta-item">
-          <span class="meta-label">分析師</span>
-          <span class="meta-value" id="rv-analyst">—</span>
-        </div>
-        <div class="meta-item">
-          <span class="meta-label">來源</span>
-          <span class="meta-value" id="rv-source">—</span>
-        </div>
-        <div class="meta-item meta-reading" style="margin-left:auto">
-          <span class="meta-label">閱讀時間</span>
-          <span class="meta-value" id="r-word-count-bar"></span>
-        </div>
+        <button class="btn-icon btn-edit" onclick="toggleFullscreen()" title="全螢幕閱讀（ESC 退出）" style="margin-left:auto"><svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg></button>
+        <button class="btn-icon btn-edit" onclick="printReport()" title="列印 / 匯出 PDF"><svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>
       </div>
       <div class="article-title-display" id="rv-company"></div>
       <div class="report-ticker" id="rv-ticker"></div>
+      <div class="article-byline">
+        <span id="rv-sector" class="byline-item"></span>
+        <span id="rv-rating" class="byline-item"></span>
+        <span id="rv-target" class="byline-item"></span>
+        <span id="rv-date" class="byline-item"></span>
+        <span id="rv-analyst" class="byline-item"></span>
+        <span id="rv-source" class="byline-item byline-source"></span>
+        <span id="r-word-count-bar" class="byline-item byline-reading"></span>
+      </div>
       <div class="article-scroll-body">
         <div id="report-view-image-gallery" class="image-gallery"></div>
         <div class="report-content-display" id="rv-content"></div>
@@ -2787,11 +2797,16 @@ function renderFolders() {
     </div>`;
 
   sortFoldersMixed(folders).forEach(f => {
-    const count = articles.filter(a => a.folder === f).length;
+    // 父資料夾包含子資料夾的文章
+    const count = articles.filter(a => a.folder === f || (a.folder||'').startsWith(f + '/')).length;
+    const segs = f.split('/');
+    const depth = segs.length - 1;
+    const leaf = segs[segs.length - 1];
+    const icon = depth > 0 ? '↳' : '📁';
     html += `
-    <div class="folder-tab ${currentFolder === f ? 'active' : ''}" data-folder="${esc(f)}">
-      <span class="folder-tab-icon">📁</span>
-      <span class="folder-tab-name">${esc(f)}</span>
+    <div class="folder-tab ${currentFolder === f ? 'active' : ''}" data-folder="${esc(f)}" style="padding-left:${10 + depth*14}px">
+      <span class="folder-tab-icon">${icon}</span>
+      <span class="folder-tab-name" title="${esc(f)}">${esc(leaf)}</span>
       <span class="folder-tab-count">${count}</span>
       <button class="folder-tab-rename" data-rename="${esc(f)}" title="重新命名">✎</button>
       <button class="folder-tab-delete" data-del="${esc(f)}" title="刪除資料夾">✕</button>
@@ -2964,7 +2979,7 @@ function renderList() {
     if (currentFolder === '')               matchFolder = true;
     else if (currentFolder === '__uncat__') matchFolder = !a.folder;
     else if (currentFolder === '__starred__') matchFolder = !!a.starred;
-    else                                    matchFolder = a.folder === currentFolder;
+    else                                    matchFolder = a.folder === currentFolder || (a.folder||'').startsWith(currentFolder + '/');
     const matchTag = !currentTag || (a.tags||[]).includes(currentTag);
     return matchSearch && matchFolder && matchTag;
   });
@@ -3016,35 +3031,31 @@ function viewArticle(id) {
   view.classList.add('animate-in');
 
   document.getElementById('view-title').textContent  = a.title;
-  document.getElementById('view-folder').textContent = a.folder || '未分類';
-  document.getElementById('view-author').textContent = a.author || '—';
-  document.getElementById('view-date').textContent   = a.date   || '—';
+  document.getElementById('view-folder').textContent = a.folder || '';
+  document.getElementById('view-author').textContent = a.author || '';
+  document.getElementById('view-date').textContent   = a.date   || '';
 
   const btn = document.getElementById('btn-star');
-  if (btn) { btn.classList.toggle('starred', !!a.starred); btn.textContent = a.starred ? '★ 已收藏' : '☆ 收藏'; }
+  if (btn) btn.classList.toggle('starred', !!a.starred);
 
   const chars = (a.content || '').replace(/\s/g, '').length;
   const wcEl  = document.getElementById('word-count-bar');
-  if (wcEl) wcEl.textContent = chars > 0 ? `⏱ ${chars.toLocaleString()} 字 · 約 ${Math.ceil(chars / 300)} 分鐘閱讀` : '';
+  if (wcEl) wcEl.textContent = chars > 0 ? `${chars.toLocaleString()} 字 · 約 ${Math.ceil(chars / 300)} 分鐘` : '';
 
   addToRecent(id);
 
   const srcEl = document.getElementById('view-source');
   const src = a.source || '';
   if (src.startsWith('http')) {
-    srcEl.innerHTML = `<a href="${esc(src)}" target="_blank" style="color:var(--accent-dim);text-decoration:underline;font-size:13px;">${esc(src.length>40?src.slice(0,40)+'…':src)}</a>`;
+    srcEl.innerHTML = `<a href="${esc(src)}" target="_blank">${esc(src.length>40?src.slice(0,40)+'…':src)}</a>`;
   } else {
-    srcEl.textContent = src || '—';
+    srcEl.textContent = src;
   }
 
-  const kwItem = document.getElementById('view-keywords-item');
-  const kwEl   = document.getElementById('view-keywords');
-  if ((a.tags||[]).length) {
-    kwEl.innerHTML = a.tags.map(t => `<span class="kw-chip" onclick="filterByTag('${esc(t)}')" style="cursor:pointer" title="篩選此標籤">${esc(t)}</span>`).join('');
-    kwItem.style.display = '';
-  } else {
-    kwItem.style.display = 'none';
-  }
+  const kwEl = document.getElementById('view-keywords');
+  if (kwEl) kwEl.innerHTML = (a.tags||[]).length
+    ? a.tags.map(t => `<span class="kw-chip" onclick="filterByTag('${esc(t)}')" style="cursor:pointer" title="篩選此標籤">${esc(t)}</span>`).join('')
+    : '';
 
   document.getElementById('view-content').innerHTML = mdLatex(a.content || '');
   applyLatex(document.getElementById('view-content'));
@@ -3148,9 +3159,10 @@ function selectFolderChip(name) {
   renderFolderChips();
 }
 async function addFolderChip() {
-  const name = prompt('新資料夾名稱：');
+  const name = prompt('新資料夾名稱（用「/」建立子資料夾，例如：投資/美股）：');
   if (!name || !name.trim()) return;
-  const n = name.trim();
+  const n = name.trim().replace(/^\/+|\/+$/g, '').replace(/\/+/g, '/');
+  if (!n) return;
   if (!folders.includes(n)) {
     try { await _apiCreateFolder(n); } catch(e) { toast('建立資料夾失敗'); return; }
     renderFolders();
@@ -3434,34 +3446,31 @@ function viewReport(id) {
 
   document.getElementById('rv-company').textContent = r.company;
   document.getElementById('rv-ticker').textContent  = r.ticker || '';
-  document.getElementById('rv-sector').textContent  = r.sector || '—';
-  document.getElementById('rv-target').textContent  = r.target  || '—';
-  document.getElementById('rv-date').textContent    = r.date    || '—';
-  document.getElementById('rv-analyst').textContent = r.analyst || '—';
+  document.getElementById('rv-sector').textContent  = r.sector || '';
+  document.getElementById('rv-target').textContent  = r.target ? `目標 ${r.target}` : '';
+  document.getElementById('rv-date').textContent    = r.date    || '';
+  document.getElementById('rv-analyst').textContent = r.analyst || '';
 
   // 收藏按鈕狀態
   const sbtn = document.getElementById('btn-rstar');
-  if (sbtn) {
-    sbtn.classList.toggle('starred', !!r.starred);
-    sbtn.textContent = r.starred ? '★ 已收藏' : '☆ 收藏';
-  }
+  if (sbtn) sbtn.classList.toggle('starred', !!r.starred);
 
   // 字數 / 閱讀時間
   const chars = (r.content || '').replace(/\s/g, '').length;
   const rwc = document.getElementById('r-word-count-bar');
-  if (rwc) rwc.textContent = chars > 0 ? `⏱ ${chars.toLocaleString()} 字 · 約 ${Math.ceil(chars / 300)} 分鐘閱讀` : '';
+  if (rwc) rwc.textContent = chars > 0 ? `${chars.toLocaleString()} 字 · 約 ${Math.ceil(chars / 300)} 分鐘` : '';
 
   const ratingEl = document.getElementById('rv-rating');
   ratingEl.innerHTML = r.rating
     ? `<span class="rating-badge ${ratingClass(r.rating)}">${esc(r.rating)}</span>`
-    : '—';
+    : '';
 
   const srcEl = document.getElementById('rv-source');
   const src = r.source || '';
   if (src.startsWith('http')) {
-    srcEl.innerHTML = `<a href="${esc(src)}" target="_blank" style="color:var(--accent-dim);text-decoration:underline;font-size:13px;">${esc(src.length>40?src.slice(0,40)+'…':src)}</a>`;
+    srcEl.innerHTML = `<a href="${esc(src)}" target="_blank">${esc(src.length>40?src.slice(0,40)+'…':src)}</a>`;
   } else {
-    srcEl.textContent = src || '—';
+    srcEl.textContent = src;
   }
 
   document.getElementById('rv-content').innerHTML = mdLatex(r.content || '');
