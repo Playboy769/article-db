@@ -522,7 +522,7 @@ body.dark .btn-icon, body.dark .btn-text { background: #1c1c1f; border-color: #3
 .meta-value { font-size: 14px; color: var(--text-main); font-weight: 500; }
 .article-title-display {
   font-family: 'Playfair Display', 'Noto Serif TC', 'Georgia', serif;
-  font-size: clamp(28px, 3.5vw, 38px);
+  font-size: clamp(28px, calc(var(--content-fs, 15px) * 2.2), 38px);
   font-weight: 700;
   color: var(--text-main);
   line-height: 1.3;
@@ -1292,7 +1292,7 @@ body:not(.pdfs-mode) .pdfs-only { display: none !important; }
 .article-content-display h2,
 .article-content-display h3,
 .article-content-display h4 {
-  font-family: 'Playfair Display', 'Noto Serif TC', 'Georgia', serif;
+  font-family: 'Noto Sans TC', 'Segoe UI', 'PingFang TC', sans-serif;
   color: #0a0a0a;
   font-weight: 700;
   line-height: 1.35;
