@@ -5135,17 +5135,14 @@ async function batchAddTag() {
 async function openStats() {
   const total = articles.length;
 
-  // Content metrics
-  const wordCounts = articles.map(a => {
-    const txt = (a.content || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
-    return txt ? txt.split(' ').length : 0;
-  });
+  // Content metrics（以字元數計算，中文內容沒有空白分詞，用 split(' ') 算「字數」會嚴重低估）
+  const wordCounts = articles.map(a => (a.content || '').replace(/<[^>]*>/g, '').replace(/\s/g, '').length);
   const totalWords = wordCounts.reduce((s, n) => s + n, 0);
   const avgWords   = total ? Math.round(totalWords / total) : 0;
   const maxWords   = wordCounts.length ? Math.max(...wordCounts) : 0;
   const longestIdx = wordCounts.indexOf(maxWords);
   const longestTitle = longestIdx >= 0 ? (articles[longestIdx]?.title || '') : '';
-  const avgReadMin = Math.max(1, Math.round(avgWords / 250));
+  const avgReadMin = Math.max(1, Math.round(avgWords / 300));
 
   // Quality metrics
   const starredCount  = articles.filter(a => a.starred).length;
@@ -5238,7 +5235,7 @@ async function openStats() {
     <div class="sc-grid4" style="margin-bottom:24px">
       ${metaCard(fmtN(totalWords), '總字數', '去除空白後')}
       ${metaCard(fmtN(avgWords), '平均字數', '字 / 篇')}
-      ${metaCard(avgReadMin + ' 分', '平均閱讀', '250 字 / 分')}
+      ${metaCard(avgReadMin + ' 分', '平均閱讀', '300 字 / 分')}
       ${metaCard(fmtN(maxWords), '最長文章', esc(longestTitle.slice(0, 18) + (longestTitle.length > 18 ? '…' : '')))}
     </div>
 
